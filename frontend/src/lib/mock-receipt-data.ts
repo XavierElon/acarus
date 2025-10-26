@@ -98,7 +98,10 @@ export function generateReceiptOCRText(receipt: MockReceipt): string {
   // Items
   lines.push('Items:')
   receipt.items.forEach((item) => {
-    const line = `${item.quantity}x ${item.name}${' '.repeat(20 - item.name.length)}$${item.price.toFixed(2)}`
+    // Truncate long item names and ensure proper spacing
+    const truncatedName = item.name.length > 20 ? item.name.substring(0, 17) + '...' : item.name
+    const spaces = Math.max(0, 20 - truncatedName.length)
+    const line = `${item.quantity}x ${truncatedName}${' '.repeat(spaces)}$${item.price.toFixed(2)}`
     lines.push(line)
   })
   lines.push('')

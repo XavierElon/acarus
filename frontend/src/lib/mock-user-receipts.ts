@@ -1,6 +1,9 @@
 // Mock receipt data associated with specific users
 import { MockReceipt, ReceiptItem, generateReceiptOCRText } from './mock-receipt-data'
 
+// Cache for generated receipts to ensure consistent IDs
+let receiptCache: UserReceipt[] | null = null
+
 export interface UserReceipt extends MockReceipt {
   userId: string
   userEmail: string
@@ -83,8 +86,15 @@ export function generateUserReceipts(userId: string, count: number = 10): UserRe
   return receipts.sort((a, b) => b.date.getTime() - a.date.getTime()) // Most recent first
 }
 
+// Simple seeded random number generator for consistent IDs
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
 function generateReceiptForUser(user: any, index: number): UserReceipt {
-  const daysAgo = Math.floor(Math.random() * 90) + index // Spread over 90 days
+  const seed = user.id.charCodeAt(0) + index * 1000
+  const daysAgo = Math.floor(seededRandom(seed) * 90) + index // Spread over 90 days
   const date = new Date()
   date.setDate(date.getDate() - daysAgo)
 
@@ -92,7 +102,7 @@ function generateReceiptForUser(user: any, index: number): UserReceipt {
 
   switch (user.spendingPattern) {
     case 'business-focused':
-      receipt = generateBusinessReceipt(user, date)
+      receipt = generateBusinessReceipt(user, date, seed)
       break
     case 'typical':
       receipt = generateTypicalReceipt(user, date)
@@ -123,20 +133,20 @@ function generateReceiptForUser(user: any, index: number): UserReceipt {
 }
 
 // Business-focused receipts (Admin User)
-function generateBusinessReceipt(user: any, date: Date): UserReceipt {
+function generateBusinessReceipt(user: any, date: Date, seed: number): UserReceipt {
   const businessMerchants = ['WeWork', 'Regus', 'Office Depot', 'Staples', 'FedEx', 'UPS Store', 'Hilton Hotel', 'Marriott', 'Delta Airlines', 'United Airlines', 'Uber Business', 'Lyft Business', 'Expensify', 'QuickBooks']
 
   const businessItems = ['Office Supplies', 'Business Lunch', 'Conference Room', 'Printing Services', 'Shipping', 'Software License', 'Professional Development', 'Client Meeting', 'Travel Expense', 'Business Dinner', 'Parking', 'Internet Service']
 
-  const merchant = businessMerchants[Math.floor(Math.random() * businessMerchants.length)]
-  const itemCount = Math.floor(Math.random() * 3) + 1
+  const merchant = businessMerchants[Math.floor(seededRandom(seed + 1) * businessMerchants.length)]
+  const itemCount = Math.floor(seededRandom(seed + 2) * 3) + 1
   const items: ReceiptItem[] = []
   let subtotal = 0
 
   for (let i = 0; i < itemCount; i++) {
-    const itemName = businessItems[Math.floor(Math.random() * businessItems.length)]
-    const quantity = Math.floor(Math.random() * 2) + 1
-    const price = parseFloat((Math.random() * 200 + 25).toFixed(2)) // $25-$225
+    const itemName = businessItems[Math.floor(seededRandom(seed + 3 + i) * businessItems.length)]
+    const quantity = Math.floor(seededRandom(seed + 4 + i) * 2) + 1
+    const price = parseFloat((seededRandom(seed + 5 + i) * 200 + 25).toFixed(2)) // $25-$225
     const total = quantity * price
 
     items.push({ name: itemName, quantity, price, total })
@@ -146,8 +156,12 @@ function generateBusinessReceipt(user: any, date: Date): UserReceipt {
   const tax = parseFloat((subtotal * 0.08).toFixed(2))
   const amount = parseFloat((subtotal + tax).toFixed(2))
 
+  // Generate deterministic ID based on user and seed
+  const idSuffix = Math.floor(seededRandom(seed + 100) * 100000).toString(36)
+  const timestamp = Math.floor(seededRandom(seed + 200) * 1000000000) + 1600000000000 // Base timestamp
+
   return {
-    id: `receipt_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    id: `receipt_${user.id}_${timestamp}_${idSuffix}`,
     userId: user.id,
     userEmail: user.email,
     userName: user.name,
@@ -160,9 +174,9 @@ function generateBusinessReceipt(user: any, date: Date): UserReceipt {
     tax,
     subtotal,
     ocrText: '',
-    confidence: Math.random() * 0.15 + 0.85, // 85-100%
-    location: `${Math.floor(Math.random() * 9999) + 1} Business Ave, ${user.location}`,
-    paymentMethod: ['Corporate Credit Card', 'Business Account'][Math.floor(Math.random() * 2)]
+    confidence: seededRandom(seed + 300) * 0.15 + 0.85, // 85-100%
+    location: `${Math.floor(seededRandom(seed + 400) * 9999) + 1} Business Ave, ${user.location}`,
+    paymentMethod: ['Corporate Credit Card', 'Business Account'][Math.floor(seededRandom(seed + 500) * 2)]
   }
 }
 
@@ -423,8 +437,12 @@ function generateMinimalReceipt(user: any, date: Date): UserReceipt {
   }
 }
 
-// Generate receipts for all users
+// Generate receipts for all users (cached for consistency)
 export function generateAllUserReceipts(): UserReceipt[] {
+  if (receiptCache) {
+    return receiptCache
+  }
+
   const allReceipts: UserReceipt[] = []
 
   mockUsers.forEach((user) => {
@@ -433,6 +451,8 @@ export function generateAllUserReceipts(): UserReceipt[] {
     allReceipts.push(...userReceipts)
   })
 
+  // Cache the results
+  receiptCache = allReceipts
   return allReceipts.sort((a, b) => b.date.getTime() - a.date.getTime())
 }
 

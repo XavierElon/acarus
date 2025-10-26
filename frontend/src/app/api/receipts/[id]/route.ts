@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
 import { mockUserReceiptData } from '@/lib/mock-user-receipts'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const receiptId = params.id
+    const { id: receiptId } = await params
 
     // Get all receipts and find the specific one
     const allReceipts = mockUserReceiptData.generateAllUserReceipts()
