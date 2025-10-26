@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "mcp/postgres", "postgresql://user:password@host.docker.internal:5439/receipt_db"]
+    },
+    "redis": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "REDIS_URL=redis://:redis123@192.168.65.254:6379", "mcp/redis"]
+    },
+    "git": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-v", "/local-directory:/local-directory", "mcp/git"]
+    },
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": ["mcp", "gateway", "run"]
+    }
+  }
+}
