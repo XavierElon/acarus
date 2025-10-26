@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Menu, X, Home, Receipt, Plus, Settings, BarChart3, Calendar, Tag, User } from 'lucide-react'
+import { Menu, X, Home, Receipt, Plus, Settings, BarChart3, Calendar, Tag, User, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -50,8 +50,9 @@ function SidebarContent() {
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Categories', href: '/categories', icon: Tag },
+    { name: 'Profile', href: '/profile', icon: User },
     { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Admin', href: '/admin', icon: User }
+    { name: 'Admin', href: '/admin', icon: Shield }
   ]
 
   return (
