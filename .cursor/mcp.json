@@ -15,6 +15,14 @@
     "MCP_DOCKER": {
       "command": "docker",
       "args": ["mcp", "gateway", "run"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/xavierelon/coding/amazon/acarus/frontend"]
+    },
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
     }
   }
 }
