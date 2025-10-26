@@ -59,23 +59,57 @@ export default function LoginPage() {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
 
+            {/* Quick Admin Login */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setEmail('admin@example.com')
+                setPassword('admin123')
+              }}>
+              🚀 Quick Admin Login
+            </Button>
+
             <div className="text-center text-sm">
               Don't have an account?{' '}
               <Link href="/auth/register" className="text-primary hover:underline">
                 Create one
               </Link>
             </div>
-            
+
             {/* Test Users Info */}
             <div className="mt-6 p-4 bg-muted rounded-lg">
-              <h4 className="text-sm font-medium mb-2">Test Users:</h4>
-              <div className="text-xs space-y-1 text-muted-foreground">
-                <div><strong>Admin:</strong> admin@example.com / admin123</div>
-                <div><strong>Test:</strong> test@example.com / password123</div>
-                <div><strong>Demo:</strong> demo@example.com / demo123</div>
-                <div><strong>John:</strong> john@example.com / john123</div>
-                <div><strong>Jane:</strong> jane@example.com / jane123</div>
+              <h4 className="text-sm font-medium mb-3">🔐 Test Users (Click to Auto-Fill)</h4>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                {[
+                  { name: 'Admin', email: 'admin@example.com', password: 'admin123', role: 'admin', color: 'bg-red-100 dark:bg-red-900/20' },
+                  { name: 'Test', email: 'test@example.com', password: 'password123', role: 'user', color: 'bg-blue-100 dark:bg-blue-900/20' },
+                  { name: 'Demo', email: 'demo@example.com', password: 'demo123', role: 'user', color: 'bg-green-100 dark:bg-green-900/20' },
+                  { name: 'John', email: 'john@example.com', password: 'john123', role: 'user', color: 'bg-purple-100 dark:bg-purple-900/20' },
+                  { name: 'Jane', email: 'jane@example.com', password: 'jane123', role: 'user', color: 'bg-pink-100 dark:bg-pink-900/20' },
+                  { name: 'Manager', email: 'manager@example.com', password: 'manager123', role: 'manager', color: 'bg-orange-100 dark:bg-orange-900/20' },
+                  { name: 'Guest', email: 'guest@example.com', password: 'guest123', role: 'guest', color: 'bg-gray-100 dark:bg-gray-800/20' }
+                ].map((user) => (
+                  <button
+                    key={user.email}
+                    type="button"
+                    onClick={() => {
+                      setEmail(user.email)
+                      setPassword(user.password)
+                    }}
+                    className={`p-2 rounded text-left hover:opacity-80 transition-opacity ${user.color}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{user.name}</span>
+                        <span className="text-muted-foreground ml-1">({user.role})</span>
+                      </div>
+                      <div className="text-muted-foreground">{user.email}</div>
+                    </div>
+                  </button>
+                ))}
               </div>
+              <div className="mt-3 text-xs text-muted-foreground">💡 Click any user above to auto-fill the form</div>
             </div>
           </form>
         </CardContent>

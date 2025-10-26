@@ -55,9 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ]
 
         // Find user by email and password
-        const user = mockUsers.find(
-          u => u.email === credentials.email && u.password === credentials.password
-        )
+        const user = mockUsers.find((u) => u.email === credentials.email && u.password === credentials.password)
 
         if (user) {
           return {
