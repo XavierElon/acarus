@@ -1,13 +1,8 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-
-const prisma = new PrismaClient()
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -20,27 +15,60 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
+        // Mock users for testing
+        const mockUsers = [
+          {
+            id: 'user-1',
+            email: 'admin@example.com',
+            password: 'admin123',
+            name: 'Admin User',
+            role: 'admin'
+          },
+          {
+            id: 'user-2',
+            email: 'test@example.com',
+            password: 'password123',
+            name: 'Test User',
+            role: 'user'
+          },
+          {
+            id: 'user-3',
+            email: 'demo@example.com',
+            password: 'demo123',
+            name: 'Demo User',
+            role: 'user'
+          },
+          {
+            id: 'user-4',
+            email: 'john@example.com',
+            password: 'john123',
+            name: 'John Doe',
+            role: 'user'
+          },
+          {
+            id: 'user-5',
+            email: 'jane@example.com',
+            password: 'jane123',
+            name: 'Jane Smith',
+            role: 'user'
           }
-        })
+        ]
 
-        if (!user) {
-          return null
+        // Find user by email and password
+        const user = mockUsers.find(
+          u => u.email === credentials.email && u.password === credentials.password
+        )
+
+        if (user) {
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role
+          }
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password as string, user.password as string)
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name
-        }
+        return null
       }
     })
   ],
@@ -49,5 +77,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: '/auth/login'
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+        token.role = (user as any).role
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string
+        ;(session.user as any).role = token.role
+      }
+      return session
+    }
   }
 })

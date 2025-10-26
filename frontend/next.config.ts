@@ -1,9 +1,7 @@
 import type { Config } from 'next'
 
 const nextConfig: Config = {
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client']
-  }
+  serverExternalPackages: ['@prisma/client']
 }
 
 export default nextConfig

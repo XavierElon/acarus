@@ -65,6 +65,18 @@ export default function LoginPage() {
                 Create one
               </Link>
             </div>
+            
+            {/* Test Users Info */}
+            <div className="mt-6 p-4 bg-muted rounded-lg">
+              <h4 className="text-sm font-medium mb-2">Test Users:</h4>
+              <div className="text-xs space-y-1 text-muted-foreground">
+                <div><strong>Admin:</strong> admin@example.com / admin123</div>
+                <div><strong>Test:</strong> test@example.com / password123</div>
+                <div><strong>Demo:</strong> demo@example.com / demo123</div>
+                <div><strong>John:</strong> john@example.com / john123</div>
+                <div><strong>Jane:</strong> jane@example.com / jane123</div>
+              </div>
+            </div>
           </form>
         </CardContent>
       </Card>
