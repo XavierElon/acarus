@@ -1,4 +1,4 @@
-// Receipt validation service
+import { tesseractOCR, OCRResult } from './tesseract-ocr'
 export interface ReceiptData {
   merchant: string
   amount: number
@@ -22,17 +22,6 @@ export interface ValidationFlag {
   code: string
   message: string
   severity: 'low' | 'medium' | 'high'
-}
-
-export interface OCRResult {
-  text: string
-  confidence: number
-  extractedData: {
-    merchant?: string
-    amount?: number
-    date?: Date
-    items?: string[]
-  }
 }
 
 export class ReceiptValidator {
@@ -100,7 +89,7 @@ export class ReceiptValidator {
   }
 
   /**
-   * OCR Validation - Extract text and validate receipt patterns
+   * OCR Validation - Extract text and validate receipt patterns using Tesseract.js
    */
   private async validateOCR(image: File | string): Promise<{ confidence: number; riskScore: number; flags: ValidationFlag[]; extractedData: Partial<ReceiptData> }> {
     const flags: ValidationFlag[] = []
@@ -108,10 +97,10 @@ export class ReceiptValidator {
     let riskScore = 0.0
 
     try {
-      // Simulate OCR text extraction
-      const ocrText = await this.extractTextFromImage(image)
+      // Use real Tesseract.js OCR
+      const ocrResult = await tesseractOCR.extractTextFromImage(image)
 
-      if (!ocrText || ocrText.length < 10) {
+      if (!ocrResult.text || ocrResult.text.length < 10) {
         flags.push({
           type: 'ERROR',
           code: 'INSUFFICIENT_TEXT',
@@ -121,32 +110,43 @@ export class ReceiptValidator {
         return { confidence: 0, riskScore: 1.0, flags, extractedData: {} }
       }
 
-      // Extract structured data from OCR text
-      const extractedData = this.extractReceiptData(ocrText)
+      // Use confidence from Tesseract
+      confidence = ocrResult.confidence
 
       // Validate receipt patterns
-      const patternValidation = this.validateReceiptPatterns(ocrText)
+      const patternValidation = this.validateReceiptPatterns(ocrResult.text)
       flags.push(...patternValidation.flags)
       confidence *= patternValidation.confidence
       riskScore += patternValidation.riskScore
 
       // Check for common receipt elements
-      const elementValidation = this.validateReceiptElements(ocrText)
+      const elementValidation = this.validateReceiptElements(ocrResult.text)
       flags.push(...elementValidation.flags)
       confidence *= elementValidation.confidence
       riskScore += elementValidation.riskScore
+
+      // Add processing time flag if it took too long
+      if (ocrResult.processingTime > 10000) {
+        // 10 seconds
+        flags.push({
+          type: 'WARNING',
+          code: 'SLOW_PROCESSING',
+          message: `OCR processing took ${Math.round(ocrResult.processingTime / 1000)}s`,
+          severity: 'low'
+        })
+      }
 
       return {
         confidence: Math.max(0, confidence),
         riskScore: Math.min(1, riskScore),
         flags,
-        extractedData
+        extractedData: ocrResult.extractedData
       }
     } catch (error) {
       flags.push({
         type: 'ERROR',
         code: 'OCR_FAILED',
-        message: 'Failed to process image with OCR',
+        message: `Failed to process image with OCR: ${error instanceof Error ? error.message : 'Unknown error'}`,
         severity: 'high'
       })
       return { confidence: 0, riskScore: 1.0, flags, extractedData: {} }
@@ -315,63 +315,6 @@ export class ReceiptValidator {
   }
 
   /**
-   * Simulate OCR text extraction (in real implementation, use Tesseract.js or cloud OCR)
-   */
-  private async extractTextFromImage(image: File | string): Promise<string> {
-    // This is a mock implementation
-    // In real implementation, you would use Tesseract.js or cloud OCR service
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock OCR result with common receipt text patterns
-        resolve(`
-          STARBUCKS COFFEE
-          123 Main Street
-          New York, NY 10001
-          
-          Receipt #12345
-          Date: ${new Date().toLocaleDateString()}
-          
-          Grande Latte          $4.95
-          Muffin               $2.50
-          
-          Subtotal             $7.45
-          Tax                  $0.60
-          Total                $8.05
-          
-          Thank you for your visit!
-        `)
-      }, 1000)
-    })
-  }
-
-  /**
-   * Extract structured data from OCR text
-   */
-  private extractReceiptData(ocrText: string): Partial<ReceiptData> {
-    const data: Partial<ReceiptData> = {}
-
-    // Extract merchant name (usually first line or company name)
-    const lines = ocrText.split('\n').filter((line) => line.trim())
-    if (lines.length > 0) {
-      data.merchant = lines[0].trim()
-    }
-
-    // Extract amount (look for "Total" or similar patterns)
-    const totalMatch = ocrText.match(/total[:\s]*\$?(\d+\.?\d*)/i)
-    if (totalMatch) {
-      data.amount = parseFloat(totalMatch[1])
-    }
-
-    // Extract date
-    const dateMatch = ocrText.match(/date[:\s]*(\d{1,2}\/\d{1,2}\/\d{2,4})/i)
-    if (dateMatch) {
-      data.date = new Date(dateMatch[1])
-    }
-
-    return data
-  }
-
-  /**
    * Validate receipt patterns in OCR text
    */
   private validateReceiptPatterns(ocrText: string): { confidence: number; riskScore: number; flags: ValidationFlag[] } {
@@ -417,20 +360,24 @@ export class ReceiptValidator {
     let confidence = 1.0
     let riskScore = 0.0
 
-    // Check for merchant name
-    if (!this.extractReceiptData(ocrText).merchant) {
+    // Check for merchant name in OCR text
+    const lines = ocrText.split('\n').filter((line) => line.trim())
+    const hasMerchantName = lines.some((line) => line.length > 3 && !/receipt|invoice|total|subtotal|tax|date|time|thank/i.test(line) && /^[A-Za-z\s]+$/.test(line))
+
+    if (!hasMerchantName) {
       flags.push({
         type: 'WARNING',
         code: 'NO_MERCHANT_NAME',
-        message: 'Could not identify merchant name',
+        message: 'Could not identify merchant name in receipt',
         severity: 'medium'
       })
       confidence *= 0.8
       riskScore += 0.2
     }
 
-    // Check for amount
-    if (!this.extractReceiptData(ocrText).amount) {
+    // Check for amount patterns
+    const hasAmount = /\$?\d+\.?\d*/.test(ocrText)
+    if (!hasAmount) {
       flags.push({
         type: 'ERROR',
         code: 'NO_AMOUNT',

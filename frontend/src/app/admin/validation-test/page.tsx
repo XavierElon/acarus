@@ -8,39 +8,32 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { PageTransition } from '@/components/animations/page-transition'
 import { FadeIn } from '@/components/animations/fade-in'
 import { useReceiptValidation } from '@/hooks/use-receipt-validation'
-import { ReceiptData } from '@/lib/receipt-validator'
+import { mockReceipts, mockReceiptUtils, MockReceipt } from '@/lib/mock-receipt-data'
 import { TestTube, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 
 export default function ValidationTestPage() {
   const { isValidating, validationResult, error, validateReceipt, clearValidation } = useReceiptValidation()
   const [testResults, setTestResults] = useState<any[]>([])
 
-  const testCases: { name: string; receipt: ReceiptData }[] = [
+  // Convert mock receipts to test cases
+  const testCases = mockReceipts.map((receipt, index) => ({
+    name: `${receipt.merchant} - ${receipt.category}`,
+    receipt: {
+      merchant: receipt.merchant,
+      amount: receipt.amount,
+      date: receipt.date,
+      category: receipt.category,
+      image: new File([receipt.ocrText], `${receipt.id}.txt`, { type: 'text/plain' })
+    }
+  }))
+
+  // Add some edge case test scenarios
+  const edgeCases = [
     {
-      name: 'Valid Receipt',
-      receipt: {
-        merchant: 'Starbucks Coffee',
-        amount: 8.05,
-        date: new Date(),
-        category: 'Food & Dining',
-        image: new File([''], 'receipt.jpg', { type: 'image/jpeg' })
-      }
-    },
-    {
-      name: 'Duplicate Receipt',
-      receipt: {
-        merchant: 'Starbucks Coffee',
-        amount: 8.05,
-        date: new Date(),
-        category: 'Food & Dining',
-        image: new File([''], 'receipt.jpg', { type: 'image/jpeg' })
-      }
-    },
-    {
-      name: 'Invalid Amount',
+      name: 'Invalid Amount (Negative)',
       receipt: {
         merchant: 'Test Store',
-        amount: -5.00,
+        amount: -5.0,
         date: new Date(),
         category: 'Shopping',
         image: new File([''], 'receipt.jpg', { type: 'image/jpeg' })
@@ -50,30 +43,45 @@ export default function ValidationTestPage() {
       name: 'Future Date',
       receipt: {
         merchant: 'Future Store',
-        amount: 25.50,
+        amount: 25.5,
         date: new Date(Date.now() + 86400000), // Tomorrow
+        category: 'Shopping',
+        image: new File([''], 'receipt.jpg', { type: 'image/jpeg' })
+      }
+    },
+    {
+      name: 'Very Large Amount',
+      receipt: {
+        merchant: 'Expensive Store',
+        amount: 15000.0,
+        date: new Date(),
         category: 'Shopping',
         image: new File([''], 'receipt.jpg', { type: 'image/jpeg' })
       }
     }
   ]
 
-  const runTest = async (testCase: { name: string; receipt: ReceiptData }) => {
+  const allTestCases = [...testCases, ...edgeCases]
+
+  const runTest = async (testCase: { name: string; receipt: any }) => {
     const result = await validateReceipt(testCase.receipt)
-    
-    setTestResults(prev => [...prev, {
-      name: testCase.name,
-      result: result,
-      timestamp: new Date().toLocaleTimeString()
-    }])
+
+    setTestResults((prev) => [
+      ...prev,
+      {
+        name: testCase.name,
+        result: result,
+        timestamp: new Date().toLocaleTimeString()
+      }
+    ])
   }
 
   const runAllTests = async () => {
     setTestResults([])
-    for (const testCase of testCases) {
+    for (const testCase of allTestCases) {
       await runTest(testCase)
       // Small delay between tests
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }
 
@@ -125,14 +133,8 @@ export default function ValidationTestPage() {
                 </div>
 
                 <div className="grid gap-2 md:grid-cols-2">
-                  {testCases.map((testCase, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      onClick={() => runTest(testCase)}
-                      disabled={isValidating}
-                      className="justify-start"
-                    >
+                  {allTestCases.map((testCase, index) => (
+                    <Button key={index} variant="outline" onClick={() => runTest(testCase)} disabled={isValidating} className="justify-start">
                       {testCase.name}
                     </Button>
                   ))}
@@ -147,32 +149,22 @@ export default function ValidationTestPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    {validationResult.isValid ? (
-                      <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="mr-2 h-5 w-5 text-red-500" />
-                    )}
+                    {validationResult.isValid ? <CheckCircle className="mr-2 h-5 w-5 text-green-500" /> : <XCircle className="mr-2 h-5 w-5 text-red-500" />}
                     Current Validation Result
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold">
-                        {Math.round(validationResult.confidence * 100)}%
-                      </div>
+                      <div className="text-2xl font-bold">{Math.round(validationResult.confidence * 100)}%</div>
                       <p className="text-sm text-muted-foreground">Confidence</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">
-                        {Math.round(validationResult.riskScore * 100)}%
-                      </div>
+                      <div className="text-2xl font-bold">{Math.round(validationResult.riskScore * 100)}%</div>
                       <p className="text-sm text-muted-foreground">Risk Score</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">
-                        {validationResult.flags.length}
-                      </div>
+                      <div className="text-2xl font-bold">{validationResult.flags.length}</div>
                       <p className="text-sm text-muted-foreground">Issues</p>
                     </div>
                   </div>
@@ -180,11 +172,8 @@ export default function ValidationTestPage() {
                   {validationResult.flags.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="font-medium">Validation Flags:</h4>
-                      {validationResult.flags.map((flag, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2 p-2 rounded border"
-                        >
+                      {validationResult.flags.map((flag: any, index: number) => (
+                        <div key={index} className="flex items-center space-x-2 p-2 rounded border">
                           {getFlagIcon(flag.type)}
                           <span className="text-sm">{flag.message}</span>
                           <Badge variant="outline" className="text-xs">
@@ -199,7 +188,7 @@ export default function ValidationTestPage() {
                     <div className="space-y-2">
                       <h4 className="font-medium">Recommendations:</h4>
                       <ul className="space-y-1">
-                        {validationResult.recommendations.map((rec, index) => (
+                        {validationResult.recommendations.map((rec: string, index: number) => (
                           <li key={index} className="text-sm text-muted-foreground">
                             • {rec}
                           </li>
@@ -225,17 +214,11 @@ export default function ValidationTestPage() {
                     {testResults.map((test, index) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded">
                         <div className="flex items-center space-x-3">
-                          {test.result?.isValid ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-red-500" />
-                          )}
+                          {test.result?.isValid ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}
                           <div>
                             <p className="font-medium">{test.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              Confidence: {Math.round((test.result?.confidence || 0) * 100)}% | 
-                              Risk: {Math.round((test.result?.riskScore || 0) * 100)}% | 
-                              Flags: {test.result?.flags.length || 0}
+                              Confidence: {Math.round((test.result?.confidence || 0) * 100)}% | Risk: {Math.round((test.result?.riskScore || 0) * 100)}% | Flags: {test.result?.flags.length || 0}
                             </p>
                           </div>
                         </div>

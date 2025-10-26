@@ -7,15 +7,15 @@ import { Toaster } from '@/components/ui/sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Receipt Processor - Modern Receipt Management',
+  title: 'Acarus - Modern Receipt Management',
   description: 'A modern receipt processing application built with Next.js 16, TypeScript, and Tailwind CSS',
   keywords: ['receipts', 'expense tracking', 'financial management', 'Next.js', 'TypeScript'],
-  authors: [{ name: 'Receipt Processor Team' }],
+  authors: [{ name: 'Acarus Team' }],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Receipt Processor'
+    title: 'Acarus'
   }
 }
 

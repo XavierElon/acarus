@@ -2,6 +2,7 @@
 
 import { Menu, User, LogOut, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/ui/logo'
 import { useSession, signOut } from 'next-auth/react'
 import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
@@ -45,7 +46,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden">
             <Menu className="h-4 w-4" />
           </Button>
-          <h1 className="text-xl font-semibold">Receipt Processor</h1>
+          <Logo size="md" />
         </div>
 
         <div className="flex items-center space-x-4">
