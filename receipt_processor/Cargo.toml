@@ -24,4 +24,4 @@ utoipa = { version = "5.4.0", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 jsonwebtoken = "9"
 bcrypt = "0.17.1"
-tower-http = { version = "0.6.6", features = ["auth"] }
+tower-http = { version = "0.6.6", features = ["auth", "cors"] }

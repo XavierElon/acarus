@@ -57,16 +57,17 @@ local_resource(
 # Build and run the Rust application
 local_resource(
     'receipt-processor',
-    serve_cmd='cd receipt_processor && cargo run',
+    serve_cmd='cd receipt_processor && PORT=8000 cargo run',
     deps=['receipt_processor/src', 'receipt_processor/Cargo.toml', 'receipt_processor/Cargo.lock'],
     env={
         'DATABASE_URL': 'postgres://user:password@localhost:5439/receipt_db',
-        'REDIS_URL': 'redis://:redis123@localhost:6379'
+        'REDIS_URL': 'redis://:redis123@localhost:6379',
+        'PORT': '8000'
     },
     resource_deps=['postgres', 'redis', 'migrations', 'cargo-cleanup'],
     readiness_probe=probe(
         period_secs=2,
-        http_get=http_get_action(port=3001, path='/health')
+        http_get=http_get_action(port=8000, path='/health')
     ),
     labels=['backend']
 )
@@ -86,15 +87,15 @@ local_resource(
 # Frontend development server with Bun
 local_resource(
     'frontend',
-    serve_cmd='bun run dev',
-    deps=['src', 'package.json', 'bun.lockb'],
+    serve_cmd='cd frontend && bun run dev',
+    deps=['frontend/src', 'frontend/package.json', 'frontend/bun.lockb'],
     env={
-        'NEXT_PUBLIC_API_URL': 'http://localhost:3000'
+        'NEXT_PUBLIC_API_URL': 'http://localhost:8000'
     },
     resource_deps=['receipt-processor'],
     readiness_probe=probe(
         period_secs=3,
-        http_get=http_get_action(port=3001, path='/')
+        http_get=http_get_action(port=3000, path='/')
     ),
     labels=['frontend']
 )
