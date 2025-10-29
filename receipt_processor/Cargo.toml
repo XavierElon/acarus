@@ -2,6 +2,7 @@
 name = "receipt_processor"
 version = "0.1.0"
 edition = "2021"
+default-run = "receipt_processor"
 
 [dependencies]
 # Web framework

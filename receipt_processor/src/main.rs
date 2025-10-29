@@ -39,6 +39,7 @@ use models::receipt::{
         auth_handlers::register_user,
         auth_handlers::login_user,
         auth_handlers::create_api_key,
+        auth_handlers::list_users,
     ),
     components(
         schemas(Receipt, ReceiptItem, CreateReceiptRequest, CreateReceiptItemRequest, ListReceiptsQuery, UpdateReceiptRequest, ReceiptsListResponse, SearchReceiptsQuery
@@ -94,6 +95,7 @@ async fn main() {
     let public_routes = Router::new()
         .route("/", get(root_handler))
         .route("/health", get(health_check))
+        .route("/users", get(auth_handlers::list_users))
         .route("/auth/register", post(auth_handlers::register_user))
         .route("/auth/login", post(auth_handlers::login_user));
 
@@ -118,9 +120,9 @@ async fn main() {
     let app = Router::new()
         .merge(public_routes)
         .merge(protected_routes)
-        .layer(Extension(pool))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(cors)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        .layer(Extension(pool));
 
     // Start server
     // Read port from environment variable or default to 3000

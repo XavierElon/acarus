@@ -1,9 +1,10 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiClient, LoginRequest, RegisterRequest, AuthResponse } from '@/lib/api-client'
 
 // Auth query keys
 export const authKeys = {
@@ -72,31 +73,40 @@ export function useAuth() {
   }
 }
 
-// Auth hooks
-// export function useLogin() {
-//   const queryClient = useQueryClient()
+// Backend authentication hooks
+export function useLogin() {
+  const queryClient = useQueryClient()
 
-//   return useMutation({
-//     mutationFn: (data: LoginRequest) => apiClient.login(data),
-//     onSuccess: (response) => {
-//       // Store user data in query cache
-//       queryClient.setQueryData(authKeys.user(), response.user)
-//     }
-//   })
-// }
+  return useMutation({
+    mutationFn: (data: LoginRequest) => apiClient.login(data),
+    onSuccess: (response: AuthResponse) => {
+      // Store user data and token
+      apiClient.setToken(response.token)
+      queryClient.setQueryData(authKeys.user(), response.user)
+      console.log('Login successful:', response.user.email)
+    },
+    onError: (error) => {
+      console.error('Login failed:', error)
+    }
+  })
+}
 
-// export function useRegister() {
-//   const queryClient = useQueryClient()
+export function useRegister() {
+  const queryClient = useQueryClient()
 
-//   return useMutation({
-//     mutationFn: (data: RegisterRequest) => apiClient.register(data),
-//     onSuccess: (response) => {
-//       // Store user data in query cache
-//       queryClient.setQueryData(authKeys.user(), response.user)
-//       apiClient.setToken(response.token)
-//     }
-//   })
-// }
+  return useMutation({
+    mutationFn: (data: RegisterRequest) => apiClient.register(data),
+    onSuccess: (response: AuthResponse) => {
+      // Store user data and token
+      apiClient.setToken(response.token)
+      queryClient.setQueryData(authKeys.user(), response.user)
+      console.log('Registration successful:', response.user.email)
+    },
+    onError: (error) => {
+      console.error('Registration failed:', error)
+    }
+  })
+}
 
 // export function useCreateApiKey() {
 //   const queryClient = useQueryClient()
@@ -114,29 +124,22 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
+      // Clear token from API client
+      apiClient.clearToken()
+      // Clear query cache
       queryClient.clear()
+      // Sign out from NextAuth
+      await signOut({ redirect: false })
     }
   })
 }
 
-// Get current user from localStorage (simplified auth for demo)
-export function useCurrentUser() {
+// Get current user from backend
+export function useBackendUsers() {
   return useQuery({
-    queryKey: authKeys.user(),
-    queryFn: () => {
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        throw new Error('No token found')
-      }
-      // In a real app, you'd decode the JWT or make an API call
-      // For now, we'll return a mock user
-      return Promise.resolve({
-        id: '1',
-        email: 'user@example.com',
-        created_at: new Date().toISOString()
-      })
-    },
-    enabled: typeof window !== 'undefined' && !!localStorage.getItem('auth_token'),
-    staleTime: Infinity // Don't refetch user data
+    queryKey: ['backend-users'],
+    queryFn: () => apiClient.getBackendUsers(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1 // Only retry once if it fails
   })
 }

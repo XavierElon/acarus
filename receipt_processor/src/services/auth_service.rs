@@ -203,4 +203,20 @@ impl AuthService {
         }
         Err(sqlx::Error::RowNotFound)
     }
+
+    // List all users (for testing purposes)
+    pub async fn list_users(pool: &PgPool) -> Result<Vec<User>, Box<dyn std::error::Error>> {
+        let users = sqlx::query_as!(
+            User,
+            r#"
+            SELECT id, email, created_at, updated_at
+            FROM users
+            ORDER BY created_at ASC
+            "#
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(users)
+    }
 }

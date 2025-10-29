@@ -84,6 +84,16 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      router.push('/backend-test')
+                      setShowProfileMenu(false)
+                    }}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Backend Test
+                  </Button>
                   <div className="border-t my-1" />
                   <Button
                     variant="ghost"
