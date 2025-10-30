@@ -129,7 +129,8 @@
   }
 
   @keyframes float {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0px);
     }
     50% {
@@ -197,12 +198,17 @@
 
   .animate-shimmer {
     animation: shimmer 2s linear infinite;
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
     background-size: 1000px 100%;
+  }
+
+  @keyframes scroll {
+    to {
+      transform: translate(calc(-50% - 0.5rem));
+    }
+  }
+
+  .animate-scroll {
+    animation: scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite;
   }
 }

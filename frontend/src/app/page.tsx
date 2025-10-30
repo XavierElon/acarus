@@ -9,6 +9,7 @@ import { Logo } from '@/components/ui/logo'
 import { Receipt, TrendingUp, Shield, BarChart3, Sparkles, Zap, Camera, CheckCircle, Building2, Users, Briefcase, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { DottedGlowBackground } from '@/components/ui/dotted-glow-background'
+import { InfiniteMovingCards } from '@/components/ui/infinite-moving-cards'
 
 export default function HomePage() {
   const router = useRouter()
@@ -134,39 +135,46 @@ export default function HomePage() {
         </div>
 
         {/* Features */}
-        <div className="relative grid md:grid-cols-3 gap-8 max-w-6xl mx-auto z-10">
-          <Card className="bg-white/10 backdrop-blur border-white/20 hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105 group">
-            <CardHeader>
-              <div className="relative">
-                <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all" />
-                <Receipt className="h-12 w-12 text-purple-400 relative animate-pulse group-hover:animate-none" />
-              </div>
-              <CardTitle className="text-white text-xl mt-4">Smart OCR</CardTitle>
-              <CardDescription className="text-gray-300 text-sm mt-2">Automatically extract data from receipt images using advanced OCR technology. Just snap and scan!</CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur border-white/20 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 hover:scale-105 group">
-            <CardHeader>
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all" />
-                <BarChart3 className="h-12 w-12 text-blue-400 relative animate-pulse group-hover:animate-none" />
-              </div>
-              <CardTitle className="text-white text-xl mt-4">Analytics</CardTitle>
-              <CardDescription className="text-gray-300 text-sm mt-2">Track your spending with detailed analytics and visual reports. See your financial patterns at a glance.</CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur border-white/20 hover:border-green-400/50 hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 hover:scale-105 group">
-            <CardHeader>
-              <div className="relative">
-                <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all" />
-                <Shield className="h-12 w-12 text-green-400 relative animate-pulse group-hover:animate-none" />
-              </div>
-              <CardTitle className="text-white text-xl mt-4">Secure</CardTitle>
-              <CardDescription className="text-gray-300 text-sm mt-2">Your data is encrypted and securely stored in the cloud. Enterprise-grade security for peace of mind.</CardDescription>
-            </CardHeader>
-          </Card>
+        <div className="relative max-w-6xl mx-auto z-10">
+          <InfiniteMovingCards
+            items={[
+              {
+                icon: <Receipt className="h-12 w-12 text-purple-400 relative animate-pulse group-hover:animate-none" />,
+                title: 'Smart OCR',
+                description: 'Automatically extract data from receipt images using advanced OCR technology. Just snap and scan!',
+                bgColor: 'rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                hoverBorderColor: 'rgba(192, 132, 252, 0.5)',
+                glowColor: 'rgba(192, 132, 252, 0.2)',
+                hoverGlowColor: 'rgba(192, 132, 252, 0.3)',
+                iconBgColor: 'rgba(168, 85, 247, 0.2)'
+              },
+              {
+                icon: <BarChart3 className="h-12 w-12 text-blue-400 relative animate-pulse group-hover:animate-none" />,
+                title: 'Analytics',
+                description: 'Track your spending with detailed analytics and visual reports. See your financial patterns at a glance.',
+                bgColor: 'rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                hoverBorderColor: 'rgba(96, 165, 250, 0.5)',
+                glowColor: 'rgba(96, 165, 250, 0.2)',
+                hoverGlowColor: 'rgba(96, 165, 250, 0.3)',
+                iconBgColor: 'rgba(59, 130, 246, 0.2)'
+              },
+              {
+                icon: <Shield className="h-12 w-12 text-green-400 relative animate-pulse group-hover:animate-none" />,
+                title: 'Secure',
+                description: 'Your data is encrypted and securely stored in the cloud. Enterprise-grade security for peace of mind.',
+                bgColor: 'rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                hoverBorderColor: 'rgba(74, 222, 128, 0.5)',
+                glowColor: 'rgba(74, 222, 128, 0.2)',
+                hoverGlowColor: 'rgba(74, 222, 128, 0.3)',
+                iconBgColor: 'rgba(34, 197, 94, 0.2)'
+              }
+            ]}
+            direction="right"
+            speed="slow"
+          />
         </div>
 
         {/* Statistics Section */}
@@ -206,73 +214,104 @@ export default function HomePage() {
               <p className="text-xl text-gray-300 max-w-3xl mx-auto">Save time and reduce errors with automated receipt processing. Perfect for teams of all sizes.</p>
             </div>
 
-            {/* Use Cases Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-              {/* Use Case 1 */}
-              <Card className="bg-white/5 backdrop-blur border-white/10 hover:border-blue-400/50 hover:bg-white/10 hover:scale-105 transition-all duration-300 group animate-scale-in" style={{ animationDelay: '100ms' }}>
-                <CardHeader>
-                  <div className="relative w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-500/30 group-hover:scale-110 transition-all">
-                    <DollarSign className="h-7 w-7 text-blue-400 group-hover:animate-spin" style={{ animationDuration: '1s' }} />
-                  </div>
-                  <CardTitle className="text-white text-xl">Accounting Teams</CardTitle>
-                  <CardDescription className="text-gray-300 mt-2">Automate expense reporting and reconciliation. Reduce manual data entry by up to 90% and minimize human error.</CardDescription>
-                </CardHeader>
-              </Card>
-
-              {/* Use Case 2 */}
-              <Card className="bg-white/5 backdrop-blur border-white/10 hover:border-purple-400/50 hover:bg-white/10 hover:scale-105 transition-all duration-300 group animate-scale-in" style={{ animationDelay: '200ms' }}>
-                <CardHeader>
-                  <div className="relative w-14 h-14 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500/30 group-hover:scale-110 transition-all">
-                    <Briefcase className="h-7 w-7 text-purple-400 group-hover:animate-bounce" />
-                  </div>
-                  <CardTitle className="text-white text-xl">Small Businesses</CardTitle>
-                  <CardDescription className="text-gray-300 mt-2">Keep track of all business expenses effortlessly. Get insights into spending patterns and make data-driven decisions.</CardDescription>
-                </CardHeader>
-              </Card>
-
-              {/* Use Case 3 */}
-              <Card className="bg-white/5 backdrop-blur border-white/10 hover:border-green-400/50 hover:bg-white/10 hover:scale-105 transition-all duration-300 group animate-scale-in" style={{ animationDelay: '300ms' }}>
-                <CardHeader>
-                  <div className="relative w-14 h-14 bg-green-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-500/30 group-hover:scale-110 transition-all">
-                    <Users className="h-7 w-7 text-green-400 group-hover:scale-125 transition-transform" />
-                  </div>
-                  <CardTitle className="text-white text-xl">Travel & Hospitality</CardTitle>
-                  <CardDescription className="text-gray-300 mt-2">Manage employee expense claims efficiently. Process receipts from hotels, restaurants, and transportation instantly.</CardDescription>
-                </CardHeader>
-              </Card>
-
-              {/* Use Case 4 */}
-              <Card className="bg-white/5 backdrop-blur border-white/10 hover:border-pink-400/50 hover:bg-white/10 hover:scale-105 transition-all duration-300 group animate-scale-in" style={{ animationDelay: '400ms' }}>
-                <CardHeader>
-                  <div className="relative w-14 h-14 bg-pink-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-pink-500/30 transition-all">
-                    <Receipt className="h-7 w-7 text-pink-400" />
-                  </div>
-                  <CardTitle className="text-white text-xl">Real Estate</CardTitle>
-                  <CardDescription className="text-gray-300 mt-2">Organize property-related expenses, maintenance costs, and contractor invoices in one centralized location.</CardDescription>
-                </CardHeader>
-              </Card>
-
-              {/* Use Case 5 */}
-              <Card className="bg-white/5 backdrop-blur border-white/10 hover:border-orange-400/50 hover:bg-white/10 hover:scale-105 transition-all duration-300 group animate-scale-in" style={{ animationDelay: '500ms' }}>
-                <CardHeader>
-                  <div className="relative w-14 h-14 bg-orange-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-500/30 transition-all">
-                    <BarChart3 className="h-7 w-7 text-orange-400" />
-                  </div>
-                  <CardTitle className="text-white text-xl">Financial Services</CardTitle>
-                  <CardDescription className="text-gray-300 mt-2">Quick expense categorization and reporting. Generate compliance-ready financial reports in minutes.</CardDescription>
-                </CardHeader>
-              </Card>
-
-              {/* Use Case 6 */}
-              <Card className="bg-white/5 backdrop-blur border-white/10 hover:border-indigo-400/50 hover:bg-white/10 hover:scale-105 transition-all duration-300 group animate-scale-in" style={{ animationDelay: '600ms' }}>
-                <CardHeader>
-                  <div className="relative w-14 h-14 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-500/30 transition-all">
-                    <Zap className="h-7 w-7 text-indigo-400" />
-                  </div>
-                  <CardTitle className="text-white text-xl">Any Industry</CardTitle>
-                  <CardDescription className="text-gray-300 mt-2">Flexible platform that adapts to your workflow. API access available for custom integrations.</CardDescription>
-                </CardHeader>
-              </Card>
+            {/* Use Cases Scrolling Cards */}
+            <div className="mb-16">
+              <InfiniteMovingCards
+                items={[
+                  {
+                    icon: (
+                      <div className="relative w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:bg-blue-500/30 group-hover:scale-110 transition-all">
+                        <DollarSign className="h-7 w-7 text-blue-400 group-hover:animate-spin" style={{ animationDuration: '1s' }} />
+                      </div>
+                    ),
+                    title: 'Accounting Teams',
+                    description: 'Automate expense reporting and reconciliation. Reduce manual data entry by up to 90% and minimize human error.',
+                    bgColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    hoverBorderColor: 'rgba(59, 130, 246, 0.5)',
+                    glowColor: 'rgba(59, 130, 246, 0.2)',
+                    hoverGlowColor: 'rgba(59, 130, 246, 0.3)',
+                    iconBgColor: 'rgba(59, 130, 246, 0.2)'
+                  },
+                  {
+                    icon: (
+                      <div className="relative w-14 h-14 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:bg-purple-500/30 group-hover:scale-110 transition-all">
+                        <Briefcase className="h-7 w-7 text-purple-400 group-hover:animate-bounce" />
+                      </div>
+                    ),
+                    title: 'Small Businesses',
+                    description: 'Keep track of all business expenses effortlessly. Get insights into spending patterns and make data-driven decisions.',
+                    bgColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    hoverBorderColor: 'rgba(168, 85, 247, 0.5)',
+                    glowColor: 'rgba(168, 85, 247, 0.2)',
+                    hoverGlowColor: 'rgba(168, 85, 247, 0.3)',
+                    iconBgColor: 'rgba(168, 85, 247, 0.2)'
+                  },
+                  {
+                    icon: (
+                      <div className="relative w-14 h-14 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:bg-green-500/30 group-hover:scale-110 transition-all">
+                        <Users className="h-7 w-7 text-green-400 group-hover:scale-125 transition-transform" />
+                      </div>
+                    ),
+                    title: 'Travel & Hospitality',
+                    description: 'Manage employee expense claims efficiently. Process receipts from hotels, restaurants, and transportation instantly.',
+                    bgColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    hoverBorderColor: 'rgba(34, 197, 94, 0.5)',
+                    glowColor: 'rgba(34, 197, 94, 0.2)',
+                    hoverGlowColor: 'rgba(34, 197, 94, 0.3)',
+                    iconBgColor: 'rgba(34, 197, 94, 0.2)'
+                  },
+                  {
+                    icon: (
+                      <div className="relative w-14 h-14 bg-pink-500/20 rounded-xl flex items-center justify-center group-hover:bg-pink-500/30 transition-all">
+                        <Receipt className="h-7 w-7 text-pink-400" />
+                      </div>
+                    ),
+                    title: 'Real Estate',
+                    description: 'Organize property-related expenses, maintenance costs, and contractor invoices in one centralized location.',
+                    bgColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    hoverBorderColor: 'rgba(244, 63, 94, 0.5)',
+                    glowColor: 'rgba(244, 63, 94, 0.2)',
+                    hoverGlowColor: 'rgba(244, 63, 94, 0.3)',
+                    iconBgColor: 'rgba(244, 63, 94, 0.2)'
+                  },
+                  {
+                    icon: (
+                      <div className="relative w-14 h-14 bg-orange-500/20 rounded-xl flex items-center justify-center group-hover:bg-orange-500/30 transition-all">
+                        <BarChart3 className="h-7 w-7 text-orange-400" />
+                      </div>
+                    ),
+                    title: 'Financial Services',
+                    description: 'Quick expense categorization and reporting. Generate compliance-ready financial reports in minutes.',
+                    bgColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    hoverBorderColor: 'rgba(249, 115, 22, 0.5)',
+                    glowColor: 'rgba(249, 115, 22, 0.2)',
+                    hoverGlowColor: 'rgba(249, 115, 22, 0.3)',
+                    iconBgColor: 'rgba(249, 115, 22, 0.2)'
+                  },
+                  {
+                    icon: (
+                      <div className="relative w-14 h-14 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/30 transition-all">
+                        <Zap className="h-7 w-7 text-indigo-400" />
+                      </div>
+                    ),
+                    title: 'Any Industry',
+                    description: 'Flexible platform that adapts to your workflow. API access available for custom integrations.',
+                    bgColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    hoverBorderColor: 'rgba(99, 102, 241, 0.5)',
+                    glowColor: 'rgba(99, 102, 241, 0.2)',
+                    hoverGlowColor: 'rgba(99, 102, 241, 0.3)',
+                    iconBgColor: 'rgba(99, 102, 241, 0.2)'
+                  }
+                ]}
+                direction="left"
+                speed="slow"
+              />
             </div>
 
             {/* CTA */}
