@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { Logo } from '@/components/ui/logo'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAdminAuth } from '@/hooks/use-admin-auth'
 
 interface SidebarProps {
   isOpen: boolean
@@ -55,6 +56,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
 
 function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
   const pathname = usePathname()
+  const { isDevMode } = useAdminAuth()
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -65,7 +67,8 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
     { name: 'Categories', href: '/categories', icon: Tag },
     { name: 'Profile', href: '/profile', icon: User },
     { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Admin', href: '/admin', icon: Shield }
+    // Only show Admin in dev mode
+    ...(isDevMode ? [{ name: 'Admin', href: '/admin', icon: Shield }] : [])
   ]
 
   return (

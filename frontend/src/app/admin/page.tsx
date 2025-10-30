@@ -103,6 +103,7 @@ export default function AdminPage() {
                 </Button>
                 <Badge variant={isDevMode ? 'default' : 'secondary'}>{isDevMode ? 'ON' : 'OFF'}</Badge>
               </div>
+              {isDevMode && <p className="text-xs text-muted-foreground mt-2">Dev mode is currently enabled via localStorage. Click the button above to disable it.</p>}
             </CardContent>
           </Card>
         </div>

@@ -15,7 +15,6 @@ export const authKeys = {
 
 export function useAuth() {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const [isDevMode, setIsDevMode] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
@@ -38,6 +37,25 @@ export function useAuth() {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
+  // Note: We removed the automatic redirect from here
+  // Individual pages can handle redirects based on their requirements
+
+  return {
+    user: session?.user,
+    isLoading: status === 'loading' || !isInitialized,
+    isAuthenticated: status === 'authenticated',
+    isDevMode
+  }
+}
+
+/**
+ * Hook for protected routes that redirects to login if not authenticated
+ * Use this in pages that require authentication
+ */
+export function useProtectedAuth() {
+  const { user, isLoading, isAuthenticated, isDevMode } = useAuth()
+  const router = useRouter()
+
   useEffect(() => {
     // Skip auth check if in dev mode
     if (isDevMode) {
@@ -45,11 +63,11 @@ export function useAuth() {
       return
     }
 
-    if (status === 'unauthenticated') {
+    if (!isLoading && !isAuthenticated) {
       console.log('Not authenticated - redirecting to login')
       router.push('/auth/login')
     }
-  }, [status, router, isDevMode])
+  }, [isLoading, isAuthenticated, isDevMode, router])
 
   // Return mock user in dev mode
   if (isDevMode) {
@@ -62,14 +80,16 @@ export function useAuth() {
         image: null
       },
       isLoading: false,
-      isAuthenticated: true
+      isAuthenticated: true,
+      isDevMode
     }
   }
 
   return {
     user: session?.user,
-    isLoading: status === 'loading',
-    isAuthenticated: status === 'authenticated'
+    isLoading: isLoading,
+    isAuthenticated: isAuthenticated,
+    isDevMode
   }
 }
 
