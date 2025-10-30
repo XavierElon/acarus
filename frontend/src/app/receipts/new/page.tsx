@@ -11,7 +11,7 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { PageTransition } from '@/components/animations/page-transition'
 import { FadeIn } from '@/components/animations/fade-in'
 import { Upload, Camera, FileText, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { ValidationResult, ValidationFlag } from '@/lib/receipt-validator'
+import { ValidationResult, ValidationFlag, receiptValidator } from '@/lib/receipt-validator'
 
 export default function NewReceiptPage() {
   const router = useRouter()
@@ -63,40 +63,19 @@ export default function NewReceiptPage() {
     setShowValidation(true)
 
     try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('merchant', formData.merchant)
-      formDataToSend.append('amount', formData.amount)
-      formDataToSend.append('date', formData.date)
-      formDataToSend.append('category', formData.category)
-      formDataToSend.append('description', formData.description)
-      formDataToSend.append('image', selectedFile)
-
-      const response = await fetch('/api/receipts/validate', {
-        method: 'POST',
-        body: formDataToSend
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setValidationResult(result.validation)
-      } else {
-        console.error('Validation failed:', result.error)
-        setValidationResult({
-          isValid: false,
-          confidence: 0,
-          riskScore: 1.0,
-          flags: [
-            {
-              type: 'ERROR',
-              code: 'VALIDATION_ERROR',
-              message: result.error || 'Validation failed',
-              severity: 'high'
-            }
-          ],
-          recommendations: ['Please try again']
-        })
+      // Prepare receipt data
+      const receiptData = {
+        merchant: formData.merchant,
+        amount: parseFloat(formData.amount) || 0,
+        date: new Date(formData.date),
+        category: formData.category,
+        description: formData.description,
+        image: selectedFile
       }
+
+      // Call validator directly (client-side validation)
+      const result = await receiptValidator.validateReceipt(receiptData)
+      setValidationResult(result)
     } catch (error) {
       console.error('Validation error:', error)
       setValidationResult({
@@ -106,12 +85,12 @@ export default function NewReceiptPage() {
         flags: [
           {
             type: 'ERROR',
-            code: 'NETWORK_ERROR',
-            message: 'Failed to validate receipt',
+            code: 'VALIDATION_ERROR',
+            message: error instanceof Error ? error.message : 'Failed to validate receipt',
             severity: 'high'
           }
         ],
-        recommendations: ['Please check your connection and try again']
+        recommendations: ['Please try again']
       })
     } finally {
       setIsUploading(false)

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ValidationResult, ReceiptData } from '@/lib/receipt-validator'
+import { ValidationResult, ReceiptData, receiptValidator } from '@/lib/receipt-validator'
 
 export function useReceiptValidation() {
   const [isValidating, setIsValidating] = useState(false)
@@ -12,27 +12,10 @@ export function useReceiptValidation() {
     setValidationResult(null)
 
     try {
-      const formData = new FormData()
-      formData.append('merchant', receiptData.merchant)
-      formData.append('amount', receiptData.amount.toString())
-      formData.append('date', receiptData.date.toISOString().split('T')[0])
-      formData.append('category', receiptData.category)
-      formData.append('description', receiptData.description || '')
-      formData.append('image', receiptData.image as File)
-
-      const response = await fetch('/api/receipts/validate', {
-        method: 'POST',
-        body: formData
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setValidationResult(result.validation)
-        return result.validation
-      } else {
-        throw new Error(result.error || 'Validation failed')
-      }
+      // Call validator directly (client-side validation)
+      const result = await receiptValidator.validateReceipt(receiptData)
+      setValidationResult(result)
+      return result
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
