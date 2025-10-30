@@ -35,7 +35,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (!response.ok) {
             console.error('Backend authentication failed:', response.status)
-            console.log('NextAuth: Falling back to mock users')
             return null
           }
 
@@ -59,65 +58,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
-          console.log('NextAuth: No valid auth data, falling back to mock users')
+          console.log('NextAuth: No valid auth data')
           return null
         } catch (error) {
           console.error('Backend authentication error:', error)
-          console.log('NextAuth: Falling back to mock users due to error')
-
-          // Fallback to mock users if backend is unavailable
-          const mockUsers = [
-            {
-              id: 'user-1',
-              email: 'admin@example.com',
-              password: 'admin123',
-              name: 'Admin User',
-              role: 'admin'
-            },
-            {
-              id: 'user-2',
-              email: 'test@example.com',
-              password: 'password123',
-              name: 'Test User',
-              role: 'user'
-            },
-            {
-              id: 'user-3',
-              email: 'demo@example.com',
-              password: 'demo123',
-              name: 'Demo User',
-              role: 'user'
-            },
-            {
-              id: 'user-4',
-              email: 'john@example.com',
-              password: 'john123',
-              name: 'John Doe',
-              role: 'user'
-            },
-            {
-              id: 'user-5',
-              email: 'jane@example.com',
-              password: 'jane123',
-              name: 'Jane Smith',
-              role: 'user'
-            }
-          ]
-
-          // Find user by email and password
-          const user = mockUsers.find((u) => u.email === credentials.email && u.password === credentials.password)
-
-          if (user) {
-            console.log('NextAuth: Using mock user:', user.email)
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              role: user.role
-            }
-          }
-
-          console.log('NextAuth: No matching user found in mock users')
+          // Authentication failed - return null (no mock fallback)
           return null
         }
       }

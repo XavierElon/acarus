@@ -10,7 +10,7 @@
     },
     "git": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-v", "/local-directory:/local-directory", "mcp/git"]
+      "args": ["run", "-i", "--rm", "-v", "/Users/xavierelon/coding/amazon/acarus:/workspace", "-w", "/workspace", "mcp/git"]
     },
     "MCP_DOCKER": {
       "command": "docker",
@@ -23,6 +23,10 @@
     "next-devtools": {
       "command": "npx",
       "args": ["-y", "next-devtools-mcp@latest"]
+    },
+    "github-official": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
     }
   }
 }

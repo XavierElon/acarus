@@ -37,8 +37,10 @@ A modern receipt processing application built with Next.js 16, TypeScript, and T
    ```env
    NEXTAUTH_URL=http://localhost:3000
    NEXTAUTH_SECRET=your-secret-key-change-this-in-production-12345
-   NEXT_PUBLIC_API_URL=http://localhost:3000
+   NEXT_PUBLIC_API_URL=http://localhost:8000
    ```
+
+   **Note:** The frontend connects to the Rust backend API at `http://localhost:8000`. Make sure the backend server is running before starting the frontend.
 
 4. **Start the development server**
 
@@ -48,8 +50,38 @@ A modern receipt processing application built with Next.js 16, TypeScript, and T
    npm run dev
    ```
 
-5. **Open your browser**
+5. **Start the Rust backend server** (if not already running)
+
+   ```bash
+   cd ../receipt_processor
+   cargo run
+   ```
+
+6. **Open your browser**
    Navigate to `http://localhost:3000`
+
+## 🔌 Backend Connection
+
+The frontend communicates with a Rust backend API:
+
+- **Backend URL**: `http://localhost:8000` (configured in `NEXT_PUBLIC_API_URL`)
+- **API Client**: `src/lib/api-client.ts`
+- **Authentication**: JWT tokens stored in localStorage
+- **Endpoints**:
+  - `POST /auth/login` - User authentication
+  - `POST /auth/register` - User registration
+  - `GET /receipts` - Fetch receipts with pagination
+  - `GET /receipts/{id}` - Get receipt details
+  - `GET /users` - Get user list
+
+### Connection Status
+
+The API client automatically handles:
+
+- Token refresh from localStorage
+- Automatic retry on network errors
+- Error logging and debugging
+- Fallback to empty data if backend is unavailable
 
 ## 🔐 Authentication & Mock Users
 
