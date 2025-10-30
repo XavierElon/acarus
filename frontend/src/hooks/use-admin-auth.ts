@@ -35,7 +35,7 @@ export function useAdminAuth() {
 
   const disableDevMode = () => {
     console.log('AdminAuth: Disabling dev mode...')
-    localStorage.setItem('devMode', 'false')
+    localStorage.removeItem('devMode') // Remove instead of setting to 'false'
     setIsDevMode(false)
   }
 

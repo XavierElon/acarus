@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { apiClient } from '@/lib/api-client'
+import { useRegister } from '@/hooks/use-auth'
 import Link from 'next/link'
 
 export default function RegisterPage() {
@@ -17,6 +19,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const registerMutation = useRegister()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,15 +40,33 @@ export default function RegisterPage() {
     }
 
     try {
-      // For now, we'll just redirect to login since we don't have a register API
-      // In a real app, you'd call your register API here
-      console.log('Register attempt:', { email, password, name })
+      // Register with backend API
+      console.log('Register: Attempting registration with backend...')
+      const authResponse = await apiClient.register({ email, password })
+      console.log('Register: Backend returned token:', !!authResponse.token)
 
-      // Simulate successful registration
-      router.push('/auth/login?message=Registration successful. Please sign in.')
-    } catch (error) {
+      // Store the token in the API client
+      apiClient.setToken(authResponse.token)
+      console.log('Register: Token stored in API client')
+
+      // Automatically sign in with NextAuth after successful registration
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false
+      })
+
+      if (result?.error) {
+        console.error('Auto sign-in error:', result.error)
+        // Still redirect to login even if auto sign-in fails
+        router.push('/auth/login?message=Registration successful. Please sign in.')
+      } else {
+        console.log('Register: Successfully signed in with NextAuth')
+        router.push('/dashboard')
+      }
+    } catch (error: any) {
       console.error('Registration error:', error)
-      setError('Registration failed. Please try again.')
+      setError(error.message || 'Registration failed. Please try again.')
     } finally {
       setIsLoading(false)
     }

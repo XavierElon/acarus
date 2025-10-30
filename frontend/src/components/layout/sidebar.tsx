@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Menu, X, Home, Receipt, Plus, Settings, BarChart3, Calendar, Tag, User, Shield, TestTube, Eye, Database, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Menu, X, Home, Receipt, Plus, Settings, BarChart3, Calendar, Tag, User, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { Logo } from '@/components/ui/logo'
@@ -65,10 +65,7 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
     { name: 'Categories', href: '/categories', icon: Tag },
     { name: 'Profile', href: '/profile', icon: User },
     { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Admin', href: '/admin', icon: Shield },
-    { name: 'Validation Test', href: '/admin/validation-test', icon: TestTube },
-    { name: 'OCR Test', href: '/admin/ocr-test', icon: Eye },
-    { name: 'Mock Receipts', href: '/admin/mock-receipts', icon: Database }
+    { name: 'Admin', href: '/admin', icon: Shield }
   ]
 
   return (

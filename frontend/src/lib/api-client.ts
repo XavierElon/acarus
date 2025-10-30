@@ -114,6 +114,7 @@ class ApiClient {
     console.log('ApiClient: Making request to URL:', url)
     console.log('ApiClient: Base URL:', this.baseURL)
     console.log('ApiClient: Endpoint:', endpoint)
+    console.log('ApiClient: Environment NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -137,21 +138,40 @@ class ApiClient {
     try {
       const response = await fetch(url, config)
 
+      // Get the response text first (can only be read once)
+      const responseText = await response.text()
+
       if (!response.ok) {
-        // Try to get error details from response
+        // Try to parse error details from response
         let errorMessage = `HTTP error! status: ${response.status}`
         try {
-          const errorData = await response.json()
+          const errorData = JSON.parse(responseText)
           if (errorData.error) {
             errorMessage = errorData.error
+          } else if (errorData.message) {
+            errorMessage = errorData.message
           }
         } catch {
-          // If we can't parse JSON, use the default message
+          // If we can't parse JSON, use the response text or default message
+          if (responseText) {
+            errorMessage = responseText
+          }
         }
+
+        // Add helpful context for 404 errors
+        if (response.status === 404) {
+          console.error('404 Error Details:')
+          console.error('- Request URL:', url)
+          console.error('- Base URL:', this.baseURL)
+          console.error('- Make sure the backend server is running on', this.baseURL)
+          console.error('- Check that the endpoint path is correct:', endpoint)
+        }
+
         throw new Error(errorMessage)
       }
 
-      return await response.json()
+      // Parse successful response
+      return JSON.parse(responseText)
     } catch (error) {
       console.error('API request failed:', error)
       console.error('API request URL:', url)
@@ -284,7 +304,65 @@ class ApiClient {
   }
 
   async getDashboardStats(): Promise<DashboardStats> {
-    return this.request<DashboardStats>('/api/dashboard/stats')
+    // Since the backend doesn't have a dashboard stats endpoint,
+    // we'll compute stats from receipts client-side
+    try {
+      const receiptsResponse = await this.getBackendReceipts({ limit: 1000 })
+
+      const receipts = receiptsResponse.receipts
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+      // Calculate stats from receipts
+      const totalReceipts = receipts.length
+      const totalSpent = receipts.reduce((sum, receipt) => sum + receipt.total_amount, 0)
+      const averageReceipt = totalReceipts > 0 ? totalSpent / totalReceipts : 0
+
+      // Receipts this month
+      const receiptsThisMonth = receipts.filter((receipt) => {
+        const purchaseDate = new Date(receipt.purchase_date)
+        return purchaseDate >= startOfMonth
+      }).length
+
+      // Top categories (simple count)
+      const categoryCounts: Record<string, number> = {}
+      receipts.forEach((receipt) => {
+        // Since backend doesn't have categories, we'll create a dummy category
+        const category = 'General'
+        categoryCounts[category] = (categoryCounts[category] || 0) + receipt.total_amount
+      })
+
+      const topCategories = Object.entries(categoryCounts)
+        .map(([category, total]) => ({ category, total }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5)
+
+      // Recent receipts (convert to frontend format)
+      const recentReceipts = receipts
+        .sort((a, b) => new Date(b.purchase_date).getTime() - new Date(a.purchase_date).getTime())
+        .slice(0, 5)
+        .map((receipt) => this.convertBackendReceipt(receipt))
+
+      return {
+        totalReceipts,
+        totalSpent,
+        averageReceipt,
+        receiptsThisMonth,
+        topCategories,
+        recentReceipts
+      }
+    } catch (error) {
+      console.error('Failed to get dashboard stats:', error)
+      // Return empty stats on error
+      return {
+        totalReceipts: 0,
+        totalSpent: 0,
+        averageReceipt: 0,
+        receiptsThisMonth: 0,
+        topCategories: [],
+        recentReceipts: []
+      }
+    }
   }
 }
 

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, FileText, Calendar, MapPin, CreditCard, DollarSign, Package, User, Mail, TrendingUp, Eye, Copy, CheckCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
+import { apiClient } from '@/lib/api-client'
 
 interface ReceiptDetailPageProps {
   params: Promise<{
@@ -25,20 +26,23 @@ interface ReceiptData {
   category: string
   description: string
   items: Array<{
+    id: string
     name: string
     quantity: number
     price: number
-    total: number
+    total?: number
   }>
-  tax: number
-  subtotal: number
+  tax?: number
+  subtotal?: number
   location?: string
   paymentMethod?: string
-  confidence: number
+  confidence?: number
   ocrText?: string
   userId?: string
   userEmail?: string
   userName?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export default function ReceiptDetailPage({ params }: ReceiptDetailPageProps) {
@@ -51,13 +55,32 @@ export default function ReceiptDetailPage({ params }: ReceiptDetailPageProps) {
 
   useEffect(() => {
     const fetchReceipt = async () => {
+      if (!id) return
+      
       try {
-        const response = await fetch(`/api/receipts/${id}`)
-        if (!response.ok) {
-          throw new Error('Receipt not found')
+        const backendReceipt = await apiClient.getBackendReceipt(id)
+        
+        // Convert backend receipt to frontend format
+        const receiptData: ReceiptData = {
+          id: backendReceipt.id,
+          merchant: backendReceipt.vendor_name,
+          amount: backendReceipt.total_amount,
+          total: backendReceipt.total_amount,
+          date: backendReceipt.purchase_date,
+          category: 'General', // Default category since backend doesn't have this
+          description: '',
+          items: backendReceipt.items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.unit_price,
+            total: item.total_price
+          })),
+          createdAt: backendReceipt.created_at,
+          updatedAt: backendReceipt.updated_at
         }
-        const data = await response.json()
-        setReceipt(data)
+        
+        setReceipt(receiptData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load receipt')
       } finally {
@@ -228,8 +251,12 @@ export default function ReceiptDetailPage({ params }: ReceiptDetailPageProps) {
                     OCR Confidence
                   </div>
                   <div className="flex items-center space-x-2">
-                    {getConfidenceIcon(receipt.confidence)}
-                    <span className={`font-medium ${getConfidenceColor(receipt.confidence)}`}>{(receipt.confidence * 100).toFixed(1)}%</span>
+                    {receipt.confidence && (
+                      <>
+                        {getConfidenceIcon(receipt.confidence)}
+                        <span className={`font-medium ${getConfidenceColor(receipt.confidence)}`}>{(receipt.confidence * 100).toFixed(1)}%</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -256,7 +283,7 @@ export default function ReceiptDetailPage({ params }: ReceiptDetailPageProps) {
                           {item.quantity} × ${item.price.toFixed(2)}
                         </p>
                       </div>
-                      <p className="font-medium">${item.total.toFixed(2)}</p>
+                      <p className="font-medium">${((item.total ?? item.price * item.quantity)).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>
@@ -264,11 +291,13 @@ export default function ReceiptDetailPage({ params }: ReceiptDetailPageProps) {
                 <Separator className="my-4" />
 
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal:</span>
-                    <span>${receipt.subtotal.toFixed(2)}</span>
-                  </div>
-                  {receipt.tax > 0 && (
+                  {receipt.subtotal !== undefined && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span>${receipt.subtotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {receipt.tax !== undefined && receipt.tax > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Tax:</span>
                       <span>${receipt.tax.toFixed(2)}</span>
