@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use utoipa;
 
 use crate::models::auth::{
-    ApiKeyResponse, AuthResponse, CreateApiKeyRequest, LoginRequest, RegisterRequest,
+    ApiKeyResponse, AuthResponse, CreateApiKeyRequest, LoginRequest, RegisterRequest, User,
 };
 use crate::services::auth_service::AuthService;
 use crate::utils::auth_extractor::AuthenticatedUser;
@@ -74,6 +74,23 @@ pub async fn create_api_key(
 ) -> Result<(StatusCode, Json<ApiKeyResponse>), StatusCode> {
     match AuthService::create_api_key(&pool, user.id, request).await {
         Ok(api_key) => Ok((StatusCode::CREATED, Json(api_key))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+/// List all users (for testing purposes)
+#[utoipa::path(
+    get,
+    path = "/users",
+    responses(
+        (status = 200, description = "Users retrieved successfully", body = Vec<User>),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "auth"
+)]
+pub async fn list_users(Extension(pool): Extension<PgPool>) -> Result<Json<Vec<User>>, StatusCode> {
+    match AuthService::list_users(&pool).await {
+        Ok(users) => Ok(Json(users)),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }

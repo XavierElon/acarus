@@ -3,6 +3,7 @@ use axum::{
     Extension, Router,
 };
 use std::net::SocketAddr;
+use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -38,6 +39,7 @@ use models::receipt::{
         auth_handlers::register_user,
         auth_handlers::login_user,
         auth_handlers::create_api_key,
+        auth_handlers::list_users,
     ),
     components(
         schemas(Receipt, ReceiptItem, CreateReceiptRequest, CreateReceiptItemRequest, ListReceiptsQuery, UpdateReceiptRequest, ReceiptsListResponse, SearchReceiptsQuery
@@ -93,6 +95,7 @@ async fn main() {
     let public_routes = Router::new()
         .route("/", get(root_handler))
         .route("/health", get(health_check))
+        .route("/users", get(auth_handlers::list_users))
         .route("/auth/register", post(auth_handlers::register_user))
         .route("/auth/login", post(auth_handlers::login_user));
 
@@ -107,15 +110,27 @@ async fn main() {
         .route("/receipts/search", get(receipt_handlers::search_receipts))
         .route("/receipts/stats", get(receipt_handlers::get_stats));
 
+    // Configure CORS
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     // Combine all routes
     let app = Router::new()
         .merge(public_routes)
         .merge(protected_routes)
-        .layer(Extension(pool))
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .layer(cors)
+        .layer(Extension(pool));
 
     // Start server
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    // Read port from environment variable or default to 3000
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "8000".to_string())
+        .parse::<u16>()
+        .unwrap_or(8000);
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
     println!("Server running on http://{}", addr);
     println!("Swagger UI available at http://{}/swagger-ui", addr);
 

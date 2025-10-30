@@ -17,12 +17,12 @@ local_resource(
 )
 
 # Clean up Cargo build cache to prevent corrupted downloads
-local_resource(
-    'cargo-cleanup',
-    cmd='cd receipt_processor && rm -rf target/debug/build/utoipa-swagger-ui-* && cargo clean',
-    auto_init=True,
-    labels=['build']
-)
+# local_resource(
+#     'cargo-cleanup',
+#     cmd='cd receipt_processor && rm -rf target/debug/build/utoipa-swagger-ui-* && cargo clean',
+#     auto_init=True,
+#     labels=['build']
+# )
 
 # Start Postgres in a Docker container
 local_resource(
@@ -55,26 +55,27 @@ local_resource(
 )
 
 # Build and run the Rust application
-local_resource(
-    'receipt-processor',
-    serve_cmd='cd receipt_processor && cargo run',
-    deps=['receipt_processor/src', 'receipt_processor/Cargo.toml', 'receipt_processor/Cargo.lock'],
-    env={
-        'DATABASE_URL': 'postgres://user:password@localhost:5439/receipt_db',
-        'REDIS_URL': 'redis://:redis123@localhost:6379'
-    },
-    resource_deps=['postgres', 'redis', 'migrations', 'cargo-cleanup'],
-    readiness_probe=probe(
-        period_secs=2,
-        http_get=http_get_action(port=3001, path='/health')
-    ),
-    labels=['backend']
-)
+# local_resource(
+#     'receipt-processor',
+#     serve_cmd='cd receipt_processor && PORT=8000 cargo run',
+#     deps=['receipt_processor/src', 'receipt_processor/Cargo.toml', 'receipt_processor/Cargo.lock'],
+#     env={
+#         'DATABASE_URL': 'postgres://user:password@localhost:5439/receipt_db',
+#         'REDIS_URL': 'redis://:redis123@localhost:6379',
+#         'PORT': '8000'
+#     },
+#     resource_deps=['postgres', 'redis', 'migrations', 'cargo-cleanup'],
+#     readiness_probe=probe(
+#         period_secs=2,
+#         http_get=http_get_action(port=8000, path='/health')
+#     ),
+#     labels=['backend']
+# )
 
 # Run migrations automatically with proper waiting and verification
 local_resource(
     'migrations',
-    cmd='sleep 5 && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/001_create_receipts_table.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/002_add_users_and_auth.sql',
+    cmd='sleep 5 && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/001_create_receipts_table.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/002_add_users_and_auth.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/003_seed_test_data.sql',
     resource_deps=['postgres'],
     readiness_probe=probe(
         period_secs=5,
@@ -84,17 +85,17 @@ local_resource(
 )
 
 # Frontend development server with Bun
-local_resource(
-    'frontend',
-    serve_cmd='bun run dev',
-    deps=['src', 'package.json', 'bun.lockb'],
-    env={
-        'NEXT_PUBLIC_API_URL': 'http://localhost:3000'
-    },
-    resource_deps=['receipt-processor'],
-    readiness_probe=probe(
-        period_secs=3,
-        http_get=http_get_action(port=3001, path='/')
-    ),
-    labels=['frontend']
-)
+# local_resource(
+#     'frontend',
+#     serve_cmd='cd frontend && bun run dev',
+#     deps=['frontend/src', 'frontend/package.json', 'frontend/bun.lockb'],
+#     env={
+#         'NEXT_PUBLIC_API_URL': 'http://localhost:8000'
+#     },
+#     resource_deps=['receipt-processor'],
+#     readiness_probe=probe(
+#         period_secs=3,
+#         http_get=http_get_action(port=3000, path='/')
+#     ),
+#     labels=['frontend']
+# )
