@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: receipt-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: receipt_db
+    ports:
+      - '5439:5432'
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U user -d receipt_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - receipt-network-dev
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: receipt-redis-dev
+    restart: unless-stopped
+    command: redis-server --requirepass redis123
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', 'redis123', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - receipt-network-dev
+
+  # Optional: Database Management Tool (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: receipt-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@receipt.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - '5050:80'
+    volumes:
+      - pgadmin_data_dev:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - receipt-network-dev
+
+  # Optional: Redis Management Tool (Redis Insight)
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: receipt-redis-insight
+    restart: unless-stopped
+    ports:
+      - '5540:5540'
+    volumes:
+      - redis_insight_data_dev:/data
+    depends_on:
+      - redis
+    networks:
+      - receipt-network-dev
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+  pgadmin_data_dev:
+    driver: local
+  redis_insight_data_dev:
+    driver: local
+
+networks:
+  receipt-network-dev:
+    driver: bridge

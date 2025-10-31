@@ -1,14 +1,148 @@
-   0.108684208s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: stale: changed "/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/services/auth_service.rs"
-   0.108691333s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:           (vs) "/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-1a755ef9668f1dc5/dep-bin-receipt_processor"
-   0.108694042s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1761874817, nanos: 194576019 } < FileTime { seconds: 1761874821, nanos: 708192594 }
-   0.108733625s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: fingerprint dirty for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: false }/TargetInner { name: "receipt_processor", doc: true, ..: with_path("/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/main.rs", Edition2021) }
-   0.108737958s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-1a755ef9668f1dc5/dep-bin-receipt_processor", reference_mtime: FileTime { seconds: 1761874817, nanos: 194576019 }, stale: "/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/services/auth_service.rs", stale_mtime: FileTime { seconds: 1761874821, nanos: 708192594 } }))
-   0.109451708s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: stale: changed "/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/services/auth_service.rs"
-   0.109454500s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:           (vs) "/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-662b9379e0d08e09/dep-test-bin-receipt_processor"
-   0.109455542s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1761874817, nanos: 194569311 } < FileTime { seconds: 1761874821, nanos: 708192594 }
-   0.109494708s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: fingerprint dirty for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: true }/TargetInner { name: "receipt_processor", doc: true, ..: with_path("/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/main.rs", Edition2021) }
-   0.109498792s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-662b9379e0d08e09/dep-test-bin-receipt_processor", reference_mtime: FileTime { seconds: 1761874817, nanos: 194569311 }, stale: "/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/services/auth_service.rs", stale_mtime: FileTime { seconds: 1761874821, nanos: 708192594 } }))
+   0.086346917s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: fingerprint error for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("receipt_processor", ["lib"], "/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/lib.rs", Edition2021) }
+   0.086364750s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-410cdc065ef16145/lib-receipt_processor`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.102822209s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: fingerprint error for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("receipt_processor", ["lib"], "/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/lib.rs", Edition2021) }
+   0.102833917s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-22813295b3af178b/test-lib-receipt_processor`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.103681459s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="hash_passwords"}: cargo::core::compiler::fingerprint: fingerprint error for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: false }/TargetInner { name: "hash_passwords", doc: true, ..: with_path("/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/bin/hash_passwords.rs", Edition2021) }
+   0.103687417s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="hash_passwords"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-1a7a5bc7d7355e1d/bin-hash_passwords`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.104403292s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="hash_passwords"}: cargo::core::compiler::fingerprint: fingerprint error for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: true }/TargetInner { name: "hash_passwords", doc: true, ..: with_path("/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/bin/hash_passwords.rs", Edition2021) }
+   0.104411334s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="hash_passwords"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-3d7ed0d2bcc8e39d/test-bin-hash_passwords`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.105014042s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: fingerprint error for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: false }/TargetInner { name: "receipt_processor", doc: true, ..: with_path("/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/main.rs", Edition2021) }
+   0.105018167s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-72f6cdf79510045e/bin-receipt_processor`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.105581042s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint: fingerprint error for receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)/Check { test: true }/TargetInner { name: "receipt_processor", doc: true, ..: with_path("/Users/xavierelon/coding/amazon/acarus/receipt_processor/src/main.rs", Edition2021) }
+   0.105585000s  INFO prepare_target{force=false package_id=receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor) target="receipt_processor"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/xavierelon/coding/amazon/acarus/receipt_processor/target/debug/.fingerprint/receipt_processor-470e74ff29218601/test-bin-receipt_processor`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
     Checking receipt_processor v0.1.0 (/Users/xavierelon/coding/amazon/acarus/receipt_processor)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.77s
 warning: the following packages contain code that will be rejected by a future version of Rust: sqlx-postgres v0.7.4
 note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 2`
