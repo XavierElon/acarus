@@ -17,7 +17,8 @@ mod middleware;
 use database::connection::create_pool;
 use handlers::{auth_handlers, receipt_handlers};
 use models::auth::{
-    ApiKeyResponse, AuthResponse, CreateApiKeyRequest, LoginRequest, RegisterRequest, User,
+    ApiKeyResponse, AuthResponse, CreateApiKeyRequest, ErrorResponse, LoginRequest,
+    RegisterRequest, User,
 };
 use models::receipt::{
     CreateReceiptItemRequest, CreateReceiptRequest, CurrencyStats, ListReceiptsQuery, MonthlyStats,
@@ -43,7 +44,7 @@ use models::receipt::{
     ),
     components(
         schemas(Receipt, ReceiptItem, CreateReceiptRequest, CreateReceiptItemRequest, ListReceiptsQuery, UpdateReceiptRequest, ReceiptsListResponse, SearchReceiptsQuery
-        , ReceiptStats, StatsQuery, VendorStats, CurrencyStats, MonthlyStats, User, ApiKeyResponse, AuthResponse, CreateApiKeyRequest, LoginRequest, RegisterRequest)
+        , ReceiptStats, StatsQuery, VendorStats, CurrencyStats, MonthlyStats, User, ApiKeyResponse, AuthResponse, CreateApiKeyRequest, LoginRequest, RegisterRequest, ErrorResponse)
     ),
     tags(
         (name = "receipts", description = "Receipt management endpoints"),

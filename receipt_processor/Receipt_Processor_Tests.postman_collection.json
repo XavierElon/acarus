@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "value": "http://localhost:8000",
       "type": "string"
     },
     {
@@ -33,19 +33,14 @@
         {
           "listen": "test",
           "script": {
-            "exec": ["// Test status code", "pm.test('Status code is 200', function () {", "    pm.response.to.have.status(200);", "});", "", "// Test response time", "pm.test('Response time is less than 500ms', function () {", "    pm.expect(pm.response.responseTime).to.be.below(500);", "});", "", "// Test response body", "pm.test('Response contains expected message', function () {", "    pm.expect(pm.response.text()).to.include('running');", "});", "", "console.log('✅ Health check passed');"],
+            "exec": ["// Test status code", "pm.test('Status code is 200', function () {", "    pm.response.to.have.status(200);", "});", "", "// Test response time", "pm.test('Response time is less than 500ms', function () {", "    pm.expect(pm.response.responseTime).to.be.below(500);", "});", "", "// Test response body", "pm.test('Response contains expected message', function () {", "    pm.expect(pm.response.text()).to.include('Receipt Processor is running');", "});", "", "console.log('✅ Health check passed');"],
             "type": "text/javascript"
           }
         }
       ],
       "request": {
         "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{authToken}}"
-          }
-        ],
+        "header": [],
         "url": {
           "raw": "{{baseUrl}}/health",
           "host": ["{{baseUrl}}"],
@@ -61,19 +56,14 @@
         {
           "listen": "test",
           "script": {
-            "exec": ["pm.test('Status code is 200', function () {", "    pm.response.to.have.status(200);", "});", "", "pm.test('Response contains welcome message', function () {", "    pm.expect(pm.response.text()).to.include('Welcome');", "});", "", "console.log('✅ Root endpoint test passed');"],
+            "exec": ["pm.test('Status code is 200', function () {", "    pm.response.to.have.status(200);", "});", "", "pm.test('Response contains welcome message', function () {", "    pm.expect(pm.response.text()).to.include('Welcome to Receipt Processor');", "});", "", "console.log('✅ Root endpoint test passed');"],
             "type": "text/javascript"
           }
         }
       ],
       "request": {
         "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{authToken}}"
-          }
-        ],
+        "header": [],
         "url": {
           "raw": "{{baseUrl}}/",
           "host": ["{{baseUrl}}"],
@@ -84,15 +74,109 @@
       "response": []
     },
     {
-      "name": "3. Register User",
+      "name": "3a. Register User - Invalid Phone Number",
       "event": [
         {
           "listen": "test",
           "script": {
+            "exec": ["// Test status code", "pm.test('Status code is 400 Bad Request', function () {", "    pm.response.to.have.status(400);", "});", "", "// Test error response structure", "const response = pm.response.json();", "pm.test('Error message is present', function () {", "    pm.expect(response).to.have.property('error');", "    pm.expect(response.error).to.be.a('string');", "});", "", "console.log('✅ Invalid phone number properly rejected:', response.error);"],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test2@example.com\",\n  \"password\": \"password123\",\n  \"phone_number\": \"invalid-phone\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Test registration with invalid phone number format"
+      },
+      "response": []
+    },
+    {
+      "name": "3b. Register User - Missing Phone Number",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["// Test status code", "pm.test('Status code is 400 Bad Request', function () {", "    pm.response.to.have.status(400);", "});", "", "// Test error response structure", "const response = pm.response.json();", "pm.test('Error message is present', function () {", "    pm.expect(response).to.have.property('error');", "    pm.expect(response.error).to.be.a('string');", "});", "", "console.log('✅ Missing phone number properly rejected:', response.error);"],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test3@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Test registration without phone number (should fail)"
+      },
+      "response": []
+    },
+    {
+      "name": "3c. Register User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
             "exec": [
+              "// Generate unique email using timestamp",
+              "const timestamp = Date.now();",
+              "const uniqueEmail = 'test' + timestamp + '@example.com';",
+              "const testPhoneNumber = '+15551234567';",
+              "",
+              "// Set the email in collection variable for login test",
+              "pm.collectionVariables.set('testEmail', uniqueEmail);",
+              "",
+              "// Update request body with unique email",
+              "const requestBody = {",
+              "    email: uniqueEmail,",
+              "    password: 'password123',",
+              "    phone_number: testPhoneNumber",
+              "};",
+              "",
+              "pm.request.body.raw = JSON.stringify(requestBody);",
+              "",
+              "console.log('Registering user with email:', uniqueEmail);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Get the email that was used",
+              "const uniqueEmail = pm.collectionVariables.get('testEmail');",
+              "const testPhoneNumber = '+15551234567';",
+              "",
               "// Test status code",
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
               "});",
               "",
               "const response = pm.response.json();",
@@ -102,11 +186,17 @@
               "    pm.expect(response).to.have.property('user');",
               "    pm.expect(response.user).to.have.property('id');",
               "    pm.expect(response.user).to.have.property('email');",
+              "    pm.expect(response.user).to.have.property('phone_number');",
               "});",
               "",
-              "// Test email matches",
+              "// Test email matches request",
               "pm.test('Email matches request', function () {",
-              "    pm.expect(response.user.email).to.eql('test@example.com');",
+              "    pm.expect(response.user.email).to.eql(uniqueEmail);",
+              "});",
+              "",
+              "// Test phone number matches",
+              "pm.test('Phone number matches request', function () {",
+              "    pm.expect(response.user.phone_number).to.eql(testPhoneNumber);",
               "});",
               "",
               "// Test UUID format",
@@ -114,7 +204,12 @@
               "    pm.expect(response.user.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
               "});",
               "",
-              "console.log('✅ User registered successfully');"
+              "// Test phone number format (E.164)",
+              "pm.test('Phone number is in E.164 format', function () {",
+              "    pm.expect(response.user.phone_number).to.match(/^\\+[1-9]\\d{1,14}$/);",
+              "});",
+              "",
+              "console.log('✅ User registered successfully with email:', uniqueEmail);"
             ],
             "type": "text/javascript"
           }
@@ -126,22 +221,18 @@
           {
             "key": "Content-Type",
             "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{authToken}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"password123\",\n  \"phone_number\": \"+15551234567\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/auth/register",
           "host": ["{{baseUrl}}"],
           "path": ["auth", "register"]
         },
-        "description": "Register a new user account"
+        "description": "Register a new user account with email, password, and phone number"
       },
       "response": []
     },
@@ -165,11 +256,15 @@
               "    pm.expect(response).to.have.property('token');",
               "});",
               "",
+              "// Get the email from collection variable (set during registration)",
+              "const testEmail = pm.collectionVariables.get('testEmail') || 'test@example.com';",
+              "",
               "// Test user object",
               "pm.test('User object is valid', function () {",
               "    pm.expect(response.user).to.have.property('id');",
               "    pm.expect(response.user).to.have.property('email');",
-              "    pm.expect(response.user.email).to.eql('test@example.com');",
+              "    pm.expect(response.user).to.have.property('phone_number');",
+              "    pm.expect(response.user.email).to.eql(testEmail);",
               "});",
               "",
               "// Test token exists",
@@ -193,15 +288,11 @@
           {
             "key": "Content-Type",
             "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{authToken}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"password123\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/auth/login",
@@ -220,8 +311,8 @@
           "script": {
             "exec": [
               "// Test status code",
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status code is 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
               "});",
               "",
               "const response = pm.response.json();",

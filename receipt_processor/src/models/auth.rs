@@ -22,7 +22,7 @@ pub struct RegisterRequest {
     #[schema(example = "password123")]
     pub password: String,
     #[schema(example = "+15551234567")]
-    pub phone_number: String,
+    pub phone_number: Option<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -40,11 +40,18 @@ pub struct AuthResponse {
     pub token: String,
 }
 
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ErrorResponse {
+    #[schema(example = "Invalid phone number format. Use E.164 format (e.g., +15551234567)")]
+    pub error: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String, // user id
     pub email: String,
     pub exp: usize, // expiration time
+    pub phone_number: String,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

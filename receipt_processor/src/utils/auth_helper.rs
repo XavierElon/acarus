@@ -23,6 +23,7 @@ pub async fn authenticate_from_headers(
                     return Ok(AuthUser {
                         id: user_id,
                         email: claims.email,
+                        phone_number: claims.phone_number,
                     });
                 }
             }
@@ -31,14 +32,18 @@ pub async fn authenticate_from_headers(
         // Check for API key
         if let Some(api_key) = auth_header.strip_prefix("ApiKey ") {
             if let Ok(user_id) = AuthService::verify_api_key(pool, api_key).await {
-                // Get user email
-                if let Ok(user) = sqlx::query!("SELECT email FROM users WHERE id = $1", user_id)
-                    .fetch_one(pool)
-                    .await
+                // Get user email and phone_number
+                if let Ok(user) = sqlx::query!(
+                    "SELECT email, phone_number FROM users WHERE id = $1",
+                    user_id
+                )
+                .fetch_one(pool)
+                .await
                 {
                     return Ok(AuthUser {
                         id: user_id,
                         email: user.email,
+                        phone_number: user.phone_number,
                     });
                 }
             }

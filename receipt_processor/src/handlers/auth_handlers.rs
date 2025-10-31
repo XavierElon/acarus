@@ -3,7 +3,8 @@ use sqlx::PgPool;
 use utoipa;
 
 use crate::models::auth::{
-    ApiKeyResponse, AuthResponse, CreateApiKeyRequest, LoginRequest, RegisterRequest, User,
+    ApiKeyResponse, AuthResponse, CreateApiKeyRequest, ErrorResponse, LoginRequest,
+    RegisterRequest, User,
 };
 use crate::services::auth_service::AuthService;
 use crate::utils::auth_extractor::AuthenticatedUser;
@@ -23,10 +24,18 @@ use crate::utils::auth_extractor::AuthenticatedUser;
 pub async fn register_user(
     Extension(pool): Extension<PgPool>,
     Json(request): Json<RegisterRequest>,
-) -> Result<(StatusCode, Json<AuthResponse>), StatusCode> {
+) -> Result<(StatusCode, Json<AuthResponse>), (StatusCode, Json<ErrorResponse>)> {
     match AuthService::register_user(&pool, request).await {
         Ok(auth_response) => Ok((StatusCode::CREATED, Json(auth_response))),
-        Err(_) => Err(StatusCode::BAD_REQUEST),
+        Err(e) => {
+            let error_message = e.to_string();
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: error_message,
+                }),
+            ))
+        }
     }
 }
 

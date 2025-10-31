@@ -8,9 +8,10 @@ use utoipa;
 use uuid::Uuid;
 
 use crate::models::receipt::{
-    CreateReceiptRequest, ListReceiptsQuery, Receipt, ReceiptStats, ReceiptsListResponse,
-    SearchReceiptsQuery, StatsQuery, UpdateReceiptRequest,
+    CreateReceiptByPhoneRequest, CreateReceiptRequest, ListReceiptsQuery, Receipt, ReceiptStats,
+    ReceiptsListResponse, SearchReceiptsQuery, StatsQuery, UpdateReceiptRequest,
 };
+use crate::services::auth_service::AuthService;
 use crate::services::receipt_service::ReceiptService;
 use crate::utils::auth_extractor::AuthenticatedUser;
 
@@ -39,6 +40,36 @@ pub async fn create_receipt(
     Json(request): Json<CreateReceiptRequest>,
 ) -> Result<(StatusCode, Json<Receipt>), StatusCode> {
     match ReceiptService::create_receipt(&pool, user.id, request).await {
+        Ok(receipt) => Ok((StatusCode::CREATED, Json(receipt))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+/// Create a receipt by phone number (for purchase point integration)
+#[utoipa::path(
+    post,
+    path = "/receipts/by-phone",
+    request_body = CreateReceiptByPhoneRequest,
+    responses(
+        (status = 201, description = "Receipt created successfully", body = Receipt),
+        (status = 404, description = "User not found with that phone number"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "receipts"
+)]
+pub async fn create_receipt_by_phone(
+    Extension(pool): Extension<PgPool>,
+    Json(request): Json<CreateReceiptByPhoneRequest>,
+) -> Result<(StatusCode, Json<Receipt>), StatusCode> {
+    // Find user by phone number
+    let user = match AuthService::find_user_by_phone(&pool, &request.phone_number).await {
+        Ok(Some(user)) => user,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    // Create receipt for user
+    match ReceiptService::create_receipt(&pool, user.id, request.receipt).await {
         Ok(receipt) => Ok((StatusCode::CREATED, Json(receipt))),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }

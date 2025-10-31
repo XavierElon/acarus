@@ -16,11 +16,36 @@ impl AuthService {
             .unwrap_or_else(|_| "your-secret-key-change-this-in-production".to_string())
     }
 
+    // Validate phone number format (basic E.164 validation)
+    fn validate_phone_number(phone: &str) -> bool {
+        phone.starts_with('+')
+            && phone.len() >= 10
+            && phone.chars().skip(1).all(|c| c.is_ascii_digit())
+    }
+
     // Register a new user
     pub async fn register_user(
         pool: &PgPool,
         request: RegisterRequest,
     ) -> Result<AuthResponse, Box<dyn std::error::Error>> {
+        // Validate phone number is provided
+        let phone_number = request
+            .phone_number
+            .ok_or("Phone number is required")?
+            .trim()
+            .to_string();
+
+        if phone_number.is_empty() {
+            return Err("Phone number is required".into());
+        }
+
+        // Validate phone number format
+        if !Self::validate_phone_number(&phone_number) {
+            return Err(
+                "Invalid phone number format. Use E.164 format (e.g., +15551234567)".into(),
+            );
+        }
+
         // Hash the password
         let password_hash = hash(request.password.as_str(), DEFAULT_COST)?;
 
@@ -32,12 +57,12 @@ impl AuthService {
         sqlx::query!(
             r#"
             INSERT INTO users (id, email, password_hash, phone_number, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5, $6)
             "#,
             user_id,
             request.email,
             password_hash,
-            request.phone_number,
+            phone_number,
             now,
             now
         )
@@ -48,7 +73,7 @@ impl AuthService {
         let user = User {
             id: user_id,
             email: request.email,
-            phone_number: request.phone_number,
+            phone_number: phone_number.clone(),
             created_at: now,
             updated_at: now,
         };
@@ -110,6 +135,7 @@ impl AuthService {
             sub: user.id.to_string(),
             email: user.email.clone(),
             exp: expiration,
+            phone_number: user.phone_number.clone(),
         };
 
         let token = encode(
@@ -245,7 +271,7 @@ impl AuthService {
                 email: row.email,
                 phone_number: row.phone_number,
                 created_at: row.created_at,
-                updated_at: row.created_at,
+                updated_at: row.updated_at,
             }))
         } else {
             Ok(None)

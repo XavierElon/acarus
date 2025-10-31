@@ -1,6 +1,5 @@
 use axum::extract::FromRequestParts;
 use axum::http::{header::AUTHORIZATION, request::Parts, StatusCode};
-use sqlx::PgPool;
 
 use crate::models::auth::AuthUser;
 use crate::services::auth_service::AuthService;
@@ -16,12 +15,6 @@ where
     type Rejection = StatusCode;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // Get the database pool from extensions
-        let _pool = parts
-            .extensions
-            .get::<PgPool>()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-
         // Get the Authorization header
         let auth_header = parts
             .headers
@@ -33,9 +26,11 @@ where
             if let Some(token) = auth_header.strip_prefix("Bearer ") {
                 if let Ok(claims) = AuthService::verify_token(token) {
                     if let Ok(user_id) = uuid::Uuid::parse_str(&claims.sub) {
+                        // Get phone_number directly from JWT claims (no database query needed)
                         return Ok(AuthenticatedUser(AuthUser {
                             id: user_id,
                             email: claims.email,
+                            phone_number: claims.phone_number,
                         }));
                     }
                 }
