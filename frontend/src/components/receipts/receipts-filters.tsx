@@ -37,7 +37,7 @@ export function ReceiptsFilters({ filters, onFiltersChange }: ReceiptsFiltersPro
 
         <div>
           <Label htmlFor="sortBy">Sort By</Label>
-          <select id="sortBy" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background" value={localFilters.sortBy || 'date'} onChange={(e) => handleFilterChange('sortBy', e.target.value)}>
+          <select id="sortBy" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background" value={localFilters.sortBy || 'date'} onChange={(e) => handleFilterChange('sortBy', e.target.value as 'date' | 'total' | 'merchant')}>
             <option value="date">Date</option>
             <option value="total">Total</option>
             <option value="merchant">Merchant</option>
@@ -49,7 +49,7 @@ export function ReceiptsFilters({ filters, onFiltersChange }: ReceiptsFiltersPro
         <Button
           variant="outline"
           onClick={() => {
-            const resetFilters = { page: 1, limit: 10, sortBy: 'date', sortOrder: 'desc' }
+            const resetFilters: ReceiptsQuery = { page: 1, limit: 10, sortBy: 'date', sortOrder: 'desc' }
             setLocalFilters(resetFilters)
             onFiltersChange(resetFilters)
           }}>
