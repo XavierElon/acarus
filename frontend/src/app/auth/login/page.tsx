@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useBackendUsers } from '@/hooks/use-auth'
 import { apiClient } from '@/lib/api-client'
+import { devMode } from '@/lib/env'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -105,56 +106,60 @@ export default function LoginPage() {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
 
-            {/* Quick Admin Login */}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setEmail('admin@example.com')
-                setPassword('admin123')
-              }}>
-              🚀 Quick Admin Login
-            </Button>
+            {devMode && (
+              <>
+                {/* Quick Admin Login */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setEmail('admin@example.com')
+                    setPassword('admin123')
+                  }}>
+                  🚀 Quick Admin Login
+                </Button>
+
+                {/* Test Users Info */}
+                <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium">🔐 Test Users (Click to Auto-Fill)</h4>
+                    {usersLoading && <span className="text-xs text-muted-foreground">Loading...</span>}
+                    {usersError && <span className="text-xs text-red-500">Using fallback</span>}
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    {testUsers.map((user) => (
+                      <button
+                        key={user.email}
+                        type="button"
+                        onClick={() => {
+                          setEmail(user.email)
+                          setPassword(user.password)
+                        }}
+                        className={`p-2 rounded text-left hover:opacity-80 transition-opacity ${user.color}`}>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-medium">{user.name}</span>
+                            <span className="text-muted-foreground ml-1">({user.role})</span>
+                          </div>
+                          <div className="text-muted-foreground">{user.email}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    💡 Click any user above to auto-fill the form
+                    {backendUsers?.users?.length && <span className="block mt-1 text-green-600">✅ Loaded {backendUsers.users.length} users from database</span>}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="text-center text-sm">
               Don't have an account?{' '}
               <Link href="/auth/register" className="text-primary hover:underline">
                 Create one
               </Link>
-            </div>
-
-            {/* Test Users Info */}
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium">🔐 Test Users (Click to Auto-Fill)</h4>
-                {usersLoading && <span className="text-xs text-muted-foreground">Loading...</span>}
-                {usersError && <span className="text-xs text-red-500">Using fallback</span>}
-              </div>
-              <div className="grid grid-cols-1 gap-2 text-xs">
-                {testUsers.map((user) => (
-                  <button
-                    key={user.email}
-                    type="button"
-                    onClick={() => {
-                      setEmail(user.email)
-                      setPassword(user.password)
-                    }}
-                    className={`p-2 rounded text-left hover:opacity-80 transition-opacity ${user.color}`}>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium">{user.name}</span>
-                        <span className="text-muted-foreground ml-1">({user.role})</span>
-                      </div>
-                      <div className="text-muted-foreground">{user.email}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 text-xs text-muted-foreground">
-                💡 Click any user above to auto-fill the form
-                {backendUsers?.users?.length && <span className="block mt-1 text-green-600">✅ Loaded {backendUsers.users.length} users from database</span>}
-              </div>
             </div>
           </form>
         </CardContent>

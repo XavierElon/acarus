@@ -1,6 +1,4 @@
-import type { Config } from 'next'
-
-const nextConfig: Config = {
+const nextConfig = {
   serverExternalPackages: ['@prisma/client']
 }
 

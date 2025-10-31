@@ -86,9 +86,9 @@ export function useProtectedAuth() {
   }
 
   return {
-    user: session?.user,
-    isLoading: isLoading,
-    isAuthenticated: isAuthenticated,
+    user,
+    isLoading,
+    isAuthenticated,
     isDevMode
   }
 }
