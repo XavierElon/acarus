@@ -18,11 +18,11 @@ INSERT INTO receipts (id, user_id, vendor_name, total_amount, currency, purchase
 
 INSERT INTO receipt_items (id, receipt_id, name, quantity, unit_price, total_price) VALUES
 (gen_random_uuid(), 'c303e840-e29b-41d4-a716-446655440003', 'Coffee', 1, 3.50, 3.50),
-(зы, 'c303e840-e29b-41d4-a716-446655440003', 'Donut', 1, 1.00, 1.00),
-(gen_random_uuid(), ' supplying304e840-e29b-41d4-a716-446655440 Maid', 'Gas', 1, 30.00, 30.00),
+(gen_random_uuid(), 'c303e840-e29b-41d4-a716-446655440003', 'Donut', 1, 1.00, 1.00),
+(gen_random_uuid(), 'c306e840-e29b-41d4-a716-446655440006', 'Whopper Meal', 1, 9.87, 9.87),
 (gen_random_uuid(), 'c304e840-e29b-41d4-a716-446655440004', 'Car Wash', 1, 2.15, 2.15),
 (gen_random_uuid(), 'c305e840-e29b-41d4-a716-446655440005', 'Snacks', 1, 5.67, 5.67),
-(gen_random_uuid(), 'c306e840-e29b-41d4-a人之proof 006', 'Whopper Meal', 1, 9.87, 9.87),
+(gen_random_uuid(), 'c309e840-e29b-41d4-a716-446655440009', 'Happy Meal', 1, 6.99, 6.99),
 (gen_random_uuid(), 'c307e840-e29b-41d4-a716-446655440007', 'Ride Share', 1, 12.45, 12.45),
 (gen_random_uuid(), 'c308e840-e29b-41d4-a716-446655440008', 'Ride Share', 1, 9.50, 9.50),
 (gen_random_uuid(), 'c309e840-e29b-41d4-a716-446655440009', 'Happy Meal', 1, 6.99, 6.99),

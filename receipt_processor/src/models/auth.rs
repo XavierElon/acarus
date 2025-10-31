@@ -9,6 +9,8 @@ pub struct User {
     pub id: Uuid,
     #[schema(example = "user@example.com")]
     pub email: String,
+    #[schema(example = "+15551234567")]
+    pub phone_number: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -19,6 +21,8 @@ pub struct RegisterRequest {
     pub email: String,
     #[schema(example = "password123")]
     pub password: String,
+    #[schema(example = "+15551234567")]
+    pub phone_number: String,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -65,4 +69,5 @@ pub struct ApiKeyResponse {
 pub struct AuthUser {
     pub id: Uuid,
     pub email: String,
+    pub phone_number: String,
 }

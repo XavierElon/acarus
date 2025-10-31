@@ -31,12 +31,13 @@ impl AuthService {
         // Insert the user into the database
         sqlx::query!(
             r#"
-            INSERT INTO users (id, email, password_hash, created_at, updated_at)
+            INSERT INTO users (id, email, password_hash, phone_number, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5)
             "#,
             user_id,
             request.email,
             password_hash,
+            request.phone_number,
             now,
             now
         )
@@ -47,6 +48,7 @@ impl AuthService {
         let user = User {
             id: user_id,
             email: request.email,
+            phone_number: request.phone_number,
             created_at: now,
             updated_at: now,
         };
@@ -66,7 +68,7 @@ impl AuthService {
         // Find the user by email
         let user_row = sqlx::query!(
             r#"
-            SELECT id, email, password_hash, created_at, updated_at
+            SELECT id, email, password_hash, phone_number, created_at, updated_at
             FROM users
             WHERE email = $1
             "#,
@@ -86,6 +88,7 @@ impl AuthService {
         let user = User {
             id: user_row.id,
             email: user_row.email,
+            phone_number: user_row.phone_number,
             created_at: user_row.created_at,
             updated_at: user_row.updated_at,
         };
@@ -209,7 +212,7 @@ impl AuthService {
         let users = sqlx::query_as!(
             User,
             r#"
-            SELECT id, email, created_at, updated_at
+            SELECT id, email, phone_number, created_at, updated_at
             FROM users
             ORDER BY created_at ASC
             "#
@@ -218,5 +221,34 @@ impl AuthService {
         .await?;
 
         Ok(users)
+    }
+
+    // Find user by phone number (for receipt matching)
+    pub async fn find_user_by_phone(
+        pool: &PgPool,
+        phone_number: &str,
+    ) -> Result<Option<User>, sqlx::Error> {
+        let user_row = sqlx::query!(
+            r#"
+            SELECT id, email, phone_number, created_at, updated_at
+            FROM users
+            WHERE phone_number = $1
+            "#,
+            phone_number
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        if let Some(row) = user_row {
+            Ok(Some(User {
+                id: row.id,
+                email: row.email,
+                phone_number: row.phone_number,
+                created_at: row.created_at,
+                updated_at: row.created_at,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 }

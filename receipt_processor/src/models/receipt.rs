@@ -48,6 +48,8 @@ pub struct CreateReceiptRequest {
     pub items: Vec<CreateReceiptItemRequest>,
     #[schema(example = "https://example.com/receipt.jpg")]
     pub receipt_image_url: Option<String>,
+    #[schema(example = "+15551234567")]
+    pub phone_number: String,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
