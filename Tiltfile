@@ -75,7 +75,7 @@ local_resource(
 # Run migrations automatically with proper waiting and verification
 local_resource(
     'migrations',
-    cmd='sleep 5 && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/001_create_receipts_table.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/002_add_users_and_auth.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/003_seed_test_data.sql',
+    cmd='sleep 5 && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/001_create_receipts_table.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/002_add_users_and_auth.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/003_seed_test_data.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/004_add_receipts_to_15_per_user.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f receipt_processor/migrations/005_add_phone_number_to_users.sql',
     resource_deps=['postgres'],
     readiness_probe=probe(
         period_secs=5,
