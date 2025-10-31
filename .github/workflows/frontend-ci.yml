@@ -37,7 +37,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run ESLint
         working-directory: frontend
@@ -61,7 +61,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       # Add your test command here when tests are added
       # - name: Run tests
@@ -87,7 +87,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build application
         working-directory: frontend
@@ -155,10 +155,48 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to staging
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push frontend image to ECR
         run: |
-          echo "Deployment to staging would happen here"
-          echo "Image: ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          export ECR_REPOSITORY=${{ secrets.ECR_FRONTEND_REPO || 'receipt-processor-frontend' }}
+          export IMAGE_TAG=${{ github.sha }}
+          
+          # Pull image from GHCR
+          docker pull ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          
+          # Tag for ECR
+          docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+          
+          # Push to ECR
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+      - name: Deploy to ECS Staging
+        run: |
+          export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          export CLUSTER=${{ secrets.ECS_CLUSTER_STAGING || 'receipt-processor-staging' }}
+          export SERVICE=${{ secrets.ECS_SERVICE_FRONTEND || 'receipt-processor-frontend' }}
+          
+          aws ecs update-service \
+            --cluster $CLUSTER \
+            --service $SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION || echo "Service may not exist yet. Create it first."
 
       # Example for SSH deployment to VPS:
       # - name: Deploy to staging server via SSH

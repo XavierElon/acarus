@@ -1,7 +1,7 @@
 # Multi-stage build for Rust backend
 
 # Stage 1: Build dependencies
-FROM rust:1.75-slim as deps
+FROM rust:1.82-slim AS deps
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && \
@@ -10,7 +10,7 @@ RUN mkdir src && \
     rm -rf src
 
 # Stage 2: Build the application
-FROM rust:1.75-slim as builder
+FROM rust:1.82-slim AS builder
 WORKDIR /app
 
 # Install system dependencies
@@ -36,6 +36,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libpq5 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

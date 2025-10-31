@@ -166,11 +166,50 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to staging
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push backend image to ECR
         run: |
-          echo "Deployment to staging would happen here"
-          echo "Image: ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          # Add your deployment logic here (e.g., SSH, AWS ECS, Kubernetes, etc.)
+          export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          export ECR_REPOSITORY=${{ secrets.ECR_BACKEND_REPO || 'receipt-processor-backend' }}
+          export IMAGE_TAG=${{ github.sha }}
+
+          # Pull image from GHCR
+          docker pull ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+          # Tag for ECR
+          docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+          # Push to ECR
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+          echo "image=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Deploy to ECS Staging
+        run: |
+          export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          export CLUSTER=${{ secrets.ECS_CLUSTER_STAGING || 'receipt-processor-staging' }}
+          export SERVICE=${{ secrets.ECS_SERVICE_BACKEND || 'receipt-processor-backend' }}
+
+          aws ecs update-service \
+            --cluster $CLUSTER \
+            --service $SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION || echo "Service may not exist yet. Create it first."
 
       # Example for SSH deployment to VPS:
       # - name: Deploy to staging server via SSH
@@ -198,39 +237,45 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to production
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push backend image to ECR
         run: |
-          echo "Deployment to production would happen here"
-          echo "Image: ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          # Add your deployment logic here (e.g., AWS ECS, Kubernetes, etc.)
+          export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          export ECR_REPOSITORY=${{ secrets.ECR_BACKEND_REPO || 'receipt-processor-backend' }}
+          export IMAGE_TAG=${{ github.sha }}
 
-      # Example for SSH deployment to VPS:
-      # - name: Deploy to production server via SSH
-      #   uses: appleboy/ssh-action@v1.0.0
-      #   with:
-      #     host: ${{ secrets.PRODUCTION_HOST }}
-      #     username: ${{ secrets.PRODUCTION_USER }}
-      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     script: |
-      #       cd /opt/receipt-processor
-      #       docker-compose pull backend
-      #       docker-compose up -d backend
-      #       docker system prune -f
+          # Pull image from GHCR
+          docker pull ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # Example for AWS ECS deployment:
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: us-east-1
-      #
-      # - name: Login to ECR
-      #   uses: aws-actions/amazon-ecr-login@v2
-      #
-      # - name: Deploy to ECS
-      #   run: |
-      #     aws ecs update-service \
-      #       --cluster receipt-processor-cluster \
-      #       --service receipt-processor-service \
-      #       --force-new-deployment
+          # Tag for ECR
+          docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+          # Push to ECR
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+      - name: Deploy to ECS Production
+        run: |
+          export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          export CLUSTER=${{ secrets.ECS_CLUSTER_PRODUCTION || 'receipt-processor-production' }}
+          export SERVICE=${{ secrets.ECS_SERVICE_BACKEND || 'receipt-processor-backend' }}
+
+          aws ecs update-service \
+            --cluster $CLUSTER \
+            --service $SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION || echo "Service may not exist yet. Create it first."
