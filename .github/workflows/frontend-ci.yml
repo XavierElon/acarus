@@ -172,16 +172,16 @@ jobs:
           export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
           export ECR_REPOSITORY=${{ secrets.ECR_FRONTEND_REPO || 'receipt-processor-frontend' }}
           export IMAGE_TAG=${{ github.sha }}
-          
+
           # Pull image from GHCR
           docker pull ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          
+
           # Tag for ECR
           docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
-          
+
           # Push to ECR
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
@@ -191,7 +191,7 @@ jobs:
           export AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
           export CLUSTER=${{ secrets.ECS_CLUSTER_STAGING || 'receipt-processor-staging' }}
           export SERVICE=${{ secrets.ECS_SERVICE_FRONTEND || 'receipt-processor-frontend' }}
-          
+
           aws ecs update-service \
             --cluster $CLUSTER \
             --service $SERVICE \
