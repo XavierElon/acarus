@@ -1,15 +1,19 @@
 use axum::{
+    extract::Extension,
     http::{header::AUTHORIZATION, Request, StatusCode},
     middleware::Next,
     response::Response,
 };
 use sqlx::PgPool;
+use std::sync::Arc;
 
+use crate::database::redis::RedisPool;
 use crate::models::auth::AuthUser;
 use crate::services::auth_service::AuthService;
 
 pub async fn auth_middleware(
-    pool: PgPool,
+    Extension(pool): Extension<PgPool>,
+    Extension(redis_pool): Extension<Option<Arc<RedisPool>>>,
     mut request: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
@@ -37,7 +41,8 @@ pub async fn auth_middleware(
 
         // Check for API key
         if let Some(api_key) = auth_header.strip_prefix("ApiKey ") {
-            if let Ok(user_id) = AuthService::verify_api_key(&pool, api_key).await {
+            let redis_ref = redis_pool.as_deref();
+            if let Ok(user_id) = AuthService::verify_api_key(&pool, redis_ref, api_key).await {
                 // Get user email and phone_number
                 if let Ok(user) = sqlx::query!(
                     "SELECT email, phone_number FROM users WHERE id = $1",

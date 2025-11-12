@@ -6,7 +6,7 @@
     "dev": "bun run next dev",
     "build": "bun run next build",
     "start": "bun run next start",
-    "lint": "bun run eslint",
+    "lint": "eslint .",
     "bun:add": "bun add",
     "bun:remove": "bun remove",
     "bun:update": "bun update",

@@ -1,7 +1,7 @@
 # Multi-stage build for Rust backend
 
 # Stage 1: Build dependencies
-FROM rust:1.82-slim AS deps
+FROM rust:latest AS deps
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && \
@@ -10,7 +10,7 @@ RUN mkdir src && \
     rm -rf src
 
 # Stage 2: Build the application
-FROM rust:1.82-slim AS builder
+FROM rust:latest AS builder
 WORKDIR /app
 
 # Install system dependencies

@@ -161,6 +161,7 @@ impl AuthService {
     // Create a new API key
     pub async fn create_api_key(
         pool: &PgPool,
+        redis_pool: Option<&RedisPool>,
         user_id: Uuid,
         request: CreateApiKeyRequest,
     ) -> Result<ApiKeyResponse, Box<dyn std::error::Error>> {
@@ -199,11 +200,76 @@ impl AuthService {
             created_at: now,
             expires_at,
         })
+
+        // Cache it in Redis after inseting into database
+        if let Some(redis) = redis_pool {
+            let cache_key = format!("api_key:{}", key_hash);
+            let expires_in = if let Some(expires_at) = expires_at {
+                let duration = expires_at.signed_duration_since(now);
+                duration.num_seconds().max(3600) as u64
+            } else {
+                86400 * 7 // 7 days if no expiration
+            };
+
+            let _ = redis.set_ex::<_, _, ()>(
+                &cache_key,
+                user_id.to_string(),
+                expires_in,
+            )
+            .await;
+        }
+
+        Ok(ApiKeyResponse {
+            id,
+            name: request.name,
+            key,
+            created_at: now,
+            expires_at,
+        }) 
     }
 
     // Verify API key and return user ID if valid
-    pub async fn verify_api_key(pool: &PgPool, key: &str) -> Result<Uuid, sqlx::Error> {
-        // Get all API keys (in production, you'd want to optimize this)
+    pub async fn verify_api_key(pool: &PgPool, redis_pool: Option<&RedisPool>, key: &str) -> Result<Uuid, sqlx::Error> {
+        // Hash the key to use as cache key
+        let key_hash = match bcrypt::hash(key, bcrypt::DEFAULT_COST) {
+            Ok(hash) => hash,
+            Err(_) => return Err(sqlx::Error::RowNotFound),
+        };
+
+        // Try to get from Redis cache first
+        if let Some(redis) = redis_pool {
+            let cache_key = format!("api_key:{}", key_hash);
+            if let Ok(cached_user_id) = redis.get::<_, String>(&cache_key).await {
+                if let Ok(user_id) = Uuid::parse_str(&cached_user_id) {
+                    // Cache hit - update last_used_at in background (fire and forget)
+                    let pool_clone = pool.clone();
+                    let key_hash_clone = key_hash.clone();
+                    tokio::spawn(async move {
+                        if let Ok(keys) = sqlx::query!(
+                            "SELECT id FROM api_keys WHERE key_hash = $1",
+                            key_hash_clone
+                        )
+                        .fetch_optional(&pool_clone)
+                        .await
+                        {
+                            if let Some(key_row) = keys {
+                                let _ = sqlx::query!(
+                                    "UPDATE api_keys SET last_used_at = $1 WHERE id = $2",
+                                    Utc::now(),
+                                    key_row.id
+                                )
+                                .execute(&pool_clone)
+                                .await;
+                            } 
+                        }
+                    });
+
+                    return Ok(user_id);
+                }
+            }
+        }
+
+        // Cache miss - check database
         let keys = sqlx::query!(
             r#"
             SELECT id, user_id, key_hash, expires_at
@@ -226,6 +292,25 @@ impl AuthService {
                 )
                 .execute(pool)
                 .await?;
+
+                // Store in Redis cache with TTL
+                if let Some(redis) = redis_pool {
+                    let cache_key = format!("api_key:{}", key_row.key_hash);
+                    let expires_in = if let Some(expires_at) = key_row.expires_at {
+                        let duration = expires_at.signed_duration_since(now);
+                        duration.num_seconds().max(3600) as u64 // At least 1 hour
+                    } else {
+                        86400 * 7 // 7 days if no expiration
+                    };
+                    
+                    let _ = redis
+                        .set_ex::<_, _, ()>(
+                            &cache_key,
+                            key_row.user_id.to_string(),
+                            expires_in,
+                        )
+                        .await;
+                }
 
                 return Ok(key_row.user_id);
             }

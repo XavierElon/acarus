@@ -78,10 +78,12 @@ pub async fn login_user(
 )]
 pub async fn create_api_key(
     Extension(pool): Extension<PgPool>,
+    Extension(redis_pool): Extension<Option<Arc<RedisPool>>>,
     AuthenticatedUser(user): AuthenticatedUser,
     Json(request): Json<CreateApiKeyRequest>,
 ) -> Result<(StatusCode, Json<ApiKeyResponse>), StatusCode> {
-    match AuthService::create_api_key(&pool, user.id, request).await {
+    let redis_ref = redis_pool.as_deref();
+    match AuthService::create_api_key(&pool, redis_ref, user.id, request).await {
         Ok(api_key) => Ok((StatusCode::CREATED, Json(api_key))),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
