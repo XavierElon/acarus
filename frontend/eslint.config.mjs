@@ -4,6 +4,11 @@ import nextConfig from 'eslint-config-next'
 const config = [
   ...nextConfig,
   {
+    plugins: {
+      '@typescript-eslint': require('@typescript-eslint/eslint-plugin')
+    }
+  },
+  {
     rules: {
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn'
