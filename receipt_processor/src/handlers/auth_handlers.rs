@@ -1,7 +1,9 @@
 use axum::{extract::Extension, http::StatusCode, Json};
 use sqlx::PgPool;
+use std::sync::Arc;
 use utoipa;
 
+use crate::database::redis::RedisPool;
 use crate::models::auth::{
     ApiKeyResponse, AuthResponse, CreateApiKeyRequest, ErrorResponse, LoginRequest,
     RegisterRequest, User,

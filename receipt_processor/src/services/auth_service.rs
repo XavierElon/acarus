@@ -1,15 +1,47 @@
+use crate::database::redis::RedisPool;
 use crate::models::auth::{
     ApiKeyResponse, AuthResponse, Claims, CreateApiKeyRequest, LoginRequest, RegisterRequest, User,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use redis::AsyncCommands;
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct AuthService;
 
 impl AuthService {
+    fn api_key_cache_key(key: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        let digest = hasher.finalize();
+        format!("api_key:{:x}", digest)
+    }
+
+    fn api_key_ttl(expires_at: Option<&chrono::DateTime<Utc>>, now: chrono::DateTime<Utc>) -> u64 {
+        if let Some(expiration) = expires_at {
+            let duration = expiration.signed_duration_since(now);
+            if duration.num_seconds() > 0 {
+                duration.num_seconds().max(3600) as u64
+            } else {
+                3600
+            }
+        } else {
+            86400 * 7
+        }
+    }
+
+    fn parse_cached_api_key(value: &str) -> Option<(Uuid, Uuid)> {
+        let mut parts = value.splitn(2, ':');
+        let user_id = parts.next()?;
+        let api_key_id = parts.next()?;
+        let user_id = Uuid::parse_str(user_id).ok()?;
+        let api_key_id = Uuid::parse_str(api_key_id).ok()?;
+        Some((user_id, api_key_id))
+    }
+
     // JWT secret - should be from environment variable
     fn get_jwt_secret() -> String {
         std::env::var("JWT_SECRET")
@@ -193,75 +225,49 @@ impl AuthService {
         .execute(pool)
         .await?;
 
-        Ok(ApiKeyResponse {
+        let expires_in = Self::api_key_ttl(expires_at.as_ref(), now);
+
+        let response = ApiKeyResponse {
             id,
             name: request.name,
-            key, // Only returned once!
+            key: key.clone(), // Only returned once!
             created_at: now,
             expires_at,
-        })
+        };
 
-        // Cache it in Redis after inseting into database
         if let Some(redis) = redis_pool {
-            let cache_key = format!("api_key:{}", key_hash);
-            let expires_in = if let Some(expires_at) = expires_at {
-                let duration = expires_at.signed_duration_since(now);
-                duration.num_seconds().max(3600) as u64
-            } else {
-                86400 * 7 // 7 days if no expiration
-            };
-
-            let _ = redis.set_ex::<_, _, ()>(
-                &cache_key,
-                user_id.to_string(),
-                expires_in,
-            )
-            .await;
+            let cache_key = Self::api_key_cache_key(&key);
+            let value = format!("{}:{}", user_id, id);
+            let mut redis_conn = redis.clone();
+            let _ = redis_conn
+                .set_ex::<_, _, ()>(&cache_key, value, expires_in)
+                .await;
         }
 
-        Ok(ApiKeyResponse {
-            id,
-            name: request.name,
-            key,
-            created_at: now,
-            expires_at,
-        }) 
+        Ok(response)
     }
 
     // Verify API key and return user ID if valid
-    pub async fn verify_api_key(pool: &PgPool, redis_pool: Option<&RedisPool>, key: &str) -> Result<Uuid, sqlx::Error> {
-        // Hash the key to use as cache key
-        let key_hash = match bcrypt::hash(key, bcrypt::DEFAULT_COST) {
-            Ok(hash) => hash,
-            Err(_) => return Err(sqlx::Error::RowNotFound),
-        };
+    pub async fn verify_api_key(
+        pool: &PgPool,
+        redis_pool: Option<&RedisPool>,
+        key: &str,
+    ) -> Result<Uuid, sqlx::Error> {
+        let cache_key = Self::api_key_cache_key(key);
 
-        // Try to get from Redis cache first
         if let Some(redis) = redis_pool {
-            let cache_key = format!("api_key:{}", key_hash);
-            if let Ok(cached_user_id) = redis.get::<_, String>(&cache_key).await {
-                if let Ok(user_id) = Uuid::parse_str(&cached_user_id) {
-                    // Cache hit - update last_used_at in background (fire and forget)
+            let mut redis_conn = redis.clone();
+            if let Ok(cached_value) = redis_conn.get::<_, String>(&cache_key).await {
+                if let Some((user_id, api_key_id)) = Self::parse_cached_api_key(&cached_value) {
                     let pool_clone = pool.clone();
-                    let key_hash_clone = key_hash.clone();
                     tokio::spawn(async move {
-                        if let Ok(keys) = sqlx::query!(
-                            "SELECT id FROM api_keys WHERE key_hash = $1",
-                            key_hash_clone
+                        let _ = sqlx::query!(
+                            "UPDATE api_keys SET last_used_at = $1 WHERE id = $2",
+                            Utc::now(),
+                            api_key_id
                         )
-                        .fetch_optional(&pool_clone)
-                        .await
-                        {
-                            if let Some(key_row) = keys {
-                                let _ = sqlx::query!(
-                                    "UPDATE api_keys SET last_used_at = $1 WHERE id = $2",
-                                    Utc::now(),
-                                    key_row.id
-                                )
-                                .execute(&pool_clone)
-                                .await;
-                            } 
-                        }
+                        .execute(&pool_clone)
+                        .await;
                     });
 
                     return Ok(user_id);
@@ -269,7 +275,6 @@ impl AuthService {
             }
         }
 
-        // Cache miss - check database
         let keys = sqlx::query!(
             r#"
             SELECT id, user_id, key_hash, expires_at
@@ -280,7 +285,6 @@ impl AuthService {
         .fetch_all(pool)
         .await?;
 
-        // Check each key hash
         for key_row in keys {
             if verify(key, &key_row.key_hash).unwrap_or(false) {
                 let now = Utc::now();
@@ -293,22 +297,12 @@ impl AuthService {
                 .execute(pool)
                 .await?;
 
-                // Store in Redis cache with TTL
                 if let Some(redis) = redis_pool {
-                    let cache_key = format!("api_key:{}", key_row.key_hash);
-                    let expires_in = if let Some(expires_at) = key_row.expires_at {
-                        let duration = expires_at.signed_duration_since(now);
-                        duration.num_seconds().max(3600) as u64 // At least 1 hour
-                    } else {
-                        86400 * 7 // 7 days if no expiration
-                    };
-                    
-                    let _ = redis
-                        .set_ex::<_, _, ()>(
-                            &cache_key,
-                            key_row.user_id.to_string(),
-                            expires_in,
-                        )
+                    let mut redis_conn = redis.clone();
+                    let expires_in = Self::api_key_ttl(key_row.expires_at.as_ref(), now);
+                    let value = format!("{}:{}", key_row.user_id, key_row.id);
+                    let _ = redis_conn
+                        .set_ex::<_, _, ()>(&cache_key, value, expires_in)
                         .await;
                 }
 
