@@ -1,6 +1,4 @@
-import { type Config } from 'eslint'
-
-const config: Config = {
+const config = {
   extends: ['next/core-web-vitals'],
   rules: {
     '@typescript-eslint/no-unused-vars': 'warn',
