@@ -3,6 +3,7 @@ use axum::{
     Extension, Router,
 };
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -15,6 +16,7 @@ mod utils;
 
 mod middleware;
 use database::connection::create_pool;
+use database::redis::create_redis_pool;
 use handlers::{auth_handlers, receipt_handlers};
 use models::auth::{
     ApiKeyResponse, AuthResponse, CreateApiKeyRequest, ErrorResponse, LoginRequest,
@@ -92,6 +94,9 @@ async fn main() {
     // Create a database pool
     let pool = create_pool().await.expect("Failed to create pool");
 
+    // Create Redis pool (optional - won't fail if Redis is unavailable)
+    let redis_pool = create_redis_pool().await.ok().map(Arc::new);
+
     // Create public routes (no authentication required)
     let public_routes = Router::new()
         .route("/", get(root_handler))
@@ -123,7 +128,8 @@ async fn main() {
         .merge(protected_routes)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(cors)
-        .layer(Extension(pool));
+        .layer(Extension(pool))
+        .layer(Extension(redis_pool));
 
     // Start server
     // Read port from environment variable or default to 3000

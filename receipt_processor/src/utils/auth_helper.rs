@@ -4,6 +4,7 @@ use axum::{
 };
 use sqlx::PgPool;
 
+use crate::database::redis::RedisPool;
 use crate::models::auth::AuthUser;
 use crate::services::auth_service::AuthService;
 
@@ -12,6 +13,7 @@ use crate::services::auth_service::AuthService;
 pub async fn authenticate_from_headers(
     headers: &axum::http::HeaderMap,
     pool: &PgPool,
+    redis_pool: Option<&RedisPool>,
 ) -> Result<AuthUser, StatusCode> {
     let auth_header = headers.get(AUTHORIZATION).and_then(|h| h.to_str().ok());
 
@@ -31,7 +33,7 @@ pub async fn authenticate_from_headers(
 
         // Check for API key
         if let Some(api_key) = auth_header.strip_prefix("ApiKey ") {
-            if let Ok(user_id) = AuthService::verify_api_key(pool, api_key).await {
+            if let Ok(user_id) = AuthService::verify_api_key(pool, redis_pool, api_key).await {
                 // Get user email and phone_number
                 if let Ok(user) = sqlx::query!(
                     "SELECT email, phone_number FROM users WHERE id = $1",
