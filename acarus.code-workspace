@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "name": "Infrastructure",
+      "path": "."
+    },
+    {
+      "name": "Frontend",
+      "path": "./frontend"
+    },
+    {
+      "name": "Backend",
+      "path": "./backend"
+    },
+    {
+      "name": "OCR",
+      "path": "./ocr"
+    }
+  ],
+  "settings": {
+    // Workspace settings
+  }
+}

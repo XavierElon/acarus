@@ -1,4 +1,5 @@
 # Service directories (separate git repos)
+# These are tracked in their own repositories
 /frontend/
 /backend/
 
@@ -9,9 +10,9 @@
 *.env
 !*.env.example
 
-# IDE files
-.vscode/
-.idea/
+# IDE files (optional - you may want to track .cursor/)
+# .vscode/
+# .idea/
 *.swp
 *.swo
 *~
@@ -26,3 +27,4 @@ node_modules/
 
 # Docker volumes
 volumes/
+
