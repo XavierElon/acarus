@@ -1,0 +1,316 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'receipt_processor/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'receipt_processor/**'
+      - '.github/workflows/backend-ci.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+  IMAGE_NAME: receipt-processor
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: receipt_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            receipt_processor/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install dependencies
+        working-directory: receipt_processor
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev pkg-config
+
+      - name: Run migrations
+        working-directory: receipt_processor
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/receipt_db
+        run: |
+          for migration in migrations/*.sql; do
+            if [ -f "$migration" ] && [ "$migration" != "migrations/README.md" ]; then
+              PGPASSWORD=password psql -h localhost -U user -d receipt_db -f "$migration"
+            fi
+          done
+
+      - name: Run tests
+        working-directory: receipt_processor
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/receipt_db
+          REDIS_URL: redis://localhost:6379
+        run: cargo test --all-features
+
+      - name: Run Clippy
+        working-directory: receipt_processor
+        run: |
+          cargo clippy --all-targets --all-features
+        continue-on-error: true # Don't fail on Clippy warnings initially
+
+      - name: Check formatting
+        working-directory: receipt_processor
+        run: cargo fmt --all -- --check
+        continue-on-error: true # Don't fail on formatting initially
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./receipt_processor
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: http://staging.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to staging server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REPO: ${{ github.repository }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER || 'ubuntu' }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 Deploying backend to staging..."
+
+            # Navigate to deployment directory
+            cd ${{ secrets.DEPLOY_PATH || '/opt/receipt-processor' }}
+
+            # Login to GHCR on the server
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            # Set image name
+            export IMAGE_NAME=ghcr.io/$GITHUB_REPO/$IMAGE_NAME:${{ github.ref_name }}
+
+            # Update docker-compose.yml to use the GHCR image if it's not already set
+            if ! grep -q "ghcr.io" docker-compose.yml 2>/dev/null; then
+              echo "📝 Updating docker-compose.yml to use GHCR images..."
+              sed -i "s|build:.*receipt_processor|image: $IMAGE_NAME|g" docker-compose.yml || true
+              sed -i "/context:.*receipt_processor/,/dockerfile:/d" docker-compose.yml || true
+            fi
+
+            # Update image tag in docker-compose.yml
+            sed -i "s|image:.*receipt-processor.*|image: $IMAGE_NAME|g" docker-compose.yml || true
+
+            # Pull the latest image
+            echo "📦 Pulling latest backend image..."
+            docker pull $IMAGE_NAME || docker pull ghcr.io/$GITHUB_REPO/$IMAGE_NAME:dev
+
+            # Update and restart the backend service
+            echo "🔄 Updating backend service..."
+            docker-compose pull backend || true
+            docker-compose up -d backend
+
+            # Wait for health check
+            echo "⏳ Waiting for backend to be healthy..."
+            sleep 10
+
+            # Verify deployment
+            if docker-compose ps backend | grep -q "Up"; then
+              echo "✅ Backend deployed successfully!"
+              docker-compose ps backend
+            else
+              echo "❌ Backend deployment failed!"
+              docker-compose logs backend --tail=50
+              exit 1
+            fi
+
+            # Clean up old images
+            docker image prune -f
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://api.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to production server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REPO: ${{ github.repository }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER || 'ubuntu' }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 Deploying backend to production..."
+
+            # Navigate to deployment directory
+            cd ${{ secrets.DEPLOY_PATH || '/opt/receipt-processor' }}
+
+            # Login to GHCR on the server
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            # Set image name
+            export IMAGE_NAME=ghcr.io/$GITHUB_REPO/$IMAGE_NAME:${{ github.ref_name }}
+
+            # Update docker-compose.yml to use the GHCR image if it's not already set
+            if ! grep -q "ghcr.io" docker-compose.yml 2>/dev/null; then
+              echo "📝 Updating docker-compose.yml to use GHCR images..."
+              sed -i "s|build:.*receipt_processor|image: $IMAGE_NAME|g" docker-compose.yml || true
+              sed -i "/context:.*receipt_processor/,/dockerfile:/d" docker-compose.yml || true
+            fi
+
+            # Update image tag in docker-compose.yml
+            sed -i "s|image:.*receipt-processor.*|image: $IMAGE_NAME|g" docker-compose.yml || true
+
+            # Pull the latest image
+            echo "📦 Pulling latest backend image..."
+            docker pull $IMAGE_NAME || docker pull ghcr.io/$GITHUB_REPO/$IMAGE_NAME:main
+
+            # Update and restart the backend service
+            echo "🔄 Updating backend service..."
+            docker-compose pull backend || true
+            docker-compose up -d backend
+
+            # Wait for health check
+            echo "⏳ Waiting for backend to be healthy..."
+            sleep 10
+
+            # Verify deployment
+            if docker-compose ps backend | grep -q "Up"; then
+              echo "✅ Backend deployed successfully!"
+              docker-compose ps backend
+            else
+              echo "❌ Backend deployment failed!"
+              docker-compose logs backend --tail=50
+              exit 1
+            fi
+
+            # Clean up old images
+            docker image prune -f

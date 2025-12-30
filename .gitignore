@@ -1,0 +1,28 @@
+# Service directories (separate git repos)
+/frontend/
+/backend/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+!*.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/target/
+node_modules/
+
+# Docker volumes
+volumes/

@@ -1,5 +1,6 @@
 const nextConfig = {
-  serverExternalPackages: ['@prisma/client']
+  serverExternalPackages: ['@prisma/client'],
+  output: 'standalone' // Enable standalone output for Docker
 }
 
 export default nextConfig

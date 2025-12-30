@@ -1,11 +1,19 @@
-import { type Config } from 'eslint'
+import nextConfig from 'eslint-config-next'
+import tsPlugin from '@typescript-eslint/eslint-plugin'
 
-const config: Config = {
-  extends: ['next/core-web-vitals'],
-  rules: {
-    '@typescript-eslint/no-unused-vars': 'warn',
-    '@typescript-eslint/no-explicit-any': 'warn'
+/** @type {import('eslint').Linter.FlatConfig[]} */
+const config = [
+  ...nextConfig,
+  {
+    plugins: {
+      '@typescript-eslint': tsPlugin
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-hooks/set-state-in-effect': 'off'
+    }
   }
-}
+]
 
 export default config

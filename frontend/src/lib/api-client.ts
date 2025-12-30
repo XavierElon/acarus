@@ -241,6 +241,71 @@ class ApiClient {
     return this.request<BackendUsersResponse>('/users')
   }
 
+  async uploadReceiptImage(file: File): Promise<BackendReceipt> {
+    // Refresh token from localStorage before making request
+    this.refreshToken()
+
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const url = `${this.baseURL}/receipts/upload-image`
+
+    const headers: Record<string, string> = {}
+
+    // Add authorization header if token is available
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`
+      console.log('Uploading with token (first 20 chars):', this.token.substring(0, 20))
+    } else {
+      console.error('No token available for upload!')
+      throw new Error('Authentication required. Please log in again.')
+    }
+
+    // Don't set Content-Type header - browser will set it with boundary for multipart/form-data
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `HTTP error! status: ${response.status}`
+
+        console.error('Upload failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText // This should show the actual error
+        })
+
+        try {
+          const errorData = JSON.parse(errorText)
+          // FastAPI returns errors in 'detail' field
+          errorMessage = errorData.detail || errorData.error || errorData.message || errorMessage
+        } catch {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        // Don't override with generic message - show the actual error
+        if (response.status === 500) {
+          errorMessage = `Server error: ${errorMessage}`
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('Network error: Could not connect to backend. Make sure the backend is running on ' + this.baseURL)
+      }
+      throw error
+    }
+  }
+
   // Convert backend receipt to frontend format
   private convertBackendReceipt(backendReceipt: BackendReceipt): Receipt {
     return {
