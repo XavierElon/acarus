@@ -101,6 +101,29 @@ services:
     networks:
       - receipt-network
 
+    # POS Terminal
+  pos-terminal:
+    build:
+      context: ./gopher-pos
+      dockerfile: Dockerfile
+    container_name: receipt-pos-terminal
+    restart: unless-stopped
+    environment:
+      PORT: 1019
+      REDIS_URL: redis://:redis123@redis:6379
+    ports:
+      - '1019:1019'
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:1019/health']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - receipt-network-dev
+
 volumes:
   postgres_data:
     driver: local

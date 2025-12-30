@@ -1,6 +1,6 @@
 # Tiltfile for Receipt Processor
-# Updated to work with the new infra/ directory structure
-# Docker compose files are in infra/, but backend/ and frontend/ remain in root
+# Updated to work with the multi-repo structure
+# Roots are siblings: acarus-infra, acarus-backend, acarus-frontend, ocr, gopher-pos
 
 # Clean up any existing postgres container first
 local_resource(
@@ -49,10 +49,14 @@ local_resource(
 )
 
 # OCR Service (Python FastAPI)
+# Create venv if it doesn't exist, then run
 local_resource(
     'ocr',
-    serve_cmd='cd ocr && ./venv/bin/python main.py',
-    deps=['ocr/main.py', 'ocr/models.py', 'ocr/ocr_processor.py', 'ocr/requirements.txt'],
+    serve_cmd='cd ../ocr && ' +
+              '(test -d venv || python3 -m venv venv) && ' +
+              'venv/bin/pip install -q -r requirements.txt && ' +
+              'venv/bin/python main.py',
+    deps=['../ocr/main.py', '../ocr/models.py', '../ocr/ocr_processor.py', '../ocr/requirements.txt'],
     env={
         'PYTHONUNBUFFERED': '1'
     },
@@ -66,8 +70,8 @@ local_resource(
 # Build and run the Rust backend application
 local_resource(
     'backend',
-    serve_cmd='cd backend && PORT=8000 OCR_SERVICE_URL=http://localhost:8081 DATABASE_URL=postgres://user:password@localhost:5439/receipt_db REDIS_URL=redis://:redis123@localhost:6379 cargo run',
-    deps=['backend/src', 'backend/Cargo.toml', 'backend/Cargo.lock'],
+    serve_cmd='cd ../acarus-backend && PORT=8000 OCR_SERVICE_URL=http://localhost:8081 DATABASE_URL=postgres://user:password@localhost:5439/receipt_db REDIS_URL=redis://:redis123@localhost:6379 cargo run',
+    deps=['../acarus-backend/src', '../acarus-backend/Cargo.toml', '../acarus-backend/Cargo.lock'],
     env={
         'DATABASE_URL': 'postgres://user:password@localhost:5439/receipt_db',
         'REDIS_URL': 'redis://:redis123@localhost:6379',
@@ -87,11 +91,12 @@ local_resource(
 local_resource(
     'migrations',
     cmd='sleep 5 && ' +
-        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/001_create_receipts_table.sql && ' +
-        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/002_add_users_and_auth.sql && ' +
-        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/003_seed_test_data.sql && ' +
-        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/004_add_receipts_to_15_per_user.sql && ' +
-        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/005_add_phone_number_to_users.sql',
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/001_create_receipts_table.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/002_add_users_and_auth.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/003_seed_test_data.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/004_add_receipts_to_15_per_user.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/005_add_phone_number_to_users.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/006_add_phone_number_to_receipts.sql',
     resource_deps=['postgres'],
     readiness_probe=probe(
         period_secs=5,
@@ -103,8 +108,8 @@ local_resource(
 # Frontend development server with Bun
 local_resource(
     'frontend',
-    serve_cmd='cd frontend && bun run dev',
-    deps=['frontend/src', 'frontend/package.json', 'frontend/bun.lockb'],
+    serve_cmd='cd ../acarus-frontend && bun run dev',
+    deps=['../acarus-frontend/src', '../acarus-frontend/package.json', '../acarus-frontend/bun.lockb'],
     env={
         'NEXT_PUBLIC_API_URL': 'http://localhost:8000'
     },
@@ -114,4 +119,30 @@ local_resource(
         http_get=http_get_action(port=3000, path='/')
     ),
     labels=['frontend']
+)
+
+# POS Terminal Service (Go)
+local_resource(
+    'pos-terminal',
+    serve_cmd='cd ../gopher-pos && PORT=1019 REDIS_URL=redis://:redis123@localhost:6379 go run ./cmd/pos-terminal',
+    deps=['../gopher-pos/cmd', '../gopher-pos/internal', '../gopher-pos/pkg', '../gopher-pos/go.mod', '../gopher-pos/go.sum'],
+    env={
+        'PORT': '1019',
+        'REDIS_URL': 'redis://:redis123@localhost:6379'
+    },
+    resource_deps=['redis'],
+    readiness_probe=probe(
+        period_secs=2,
+        http_get=http_get_action(port=1019, path='/health')
+    ),
+    labels=['pos']
+)
+
+# Ngrok tunnel for POS Terminal
+# Requires ngrok installed locally.
+local_resource(
+    'ngrok-pos',
+    serve_cmd='ngrok http 1019 --log=stdout',
+    resource_deps=['pos-terminal'],
+    labels=['ngrok', 'pos']
 )
