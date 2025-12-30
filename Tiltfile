@@ -91,7 +91,8 @@ local_resource(
         'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/002_add_users_and_auth.sql && ' +
         'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/003_seed_test_data.sql && ' +
         'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/004_add_receipts_to_15_per_user.sql && ' +
-        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/005_add_phone_number_to_users.sql',
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/005_add_phone_number_to_users.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/006_add_phone_number_to_receipts.sql',
     resource_deps=['postgres'],
     readiness_probe=probe(
         period_secs=5,
