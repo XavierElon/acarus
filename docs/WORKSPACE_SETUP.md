@@ -47,12 +47,14 @@ git clone <backend-repo-url> receipt_processor
 ### 2. Install Dependencies
 
 #### Frontend:
+
 ```bash
 cd frontend
 npm install  # or bun install
 ```
 
 #### Backend:
+
 ```bash
 cd receipt_processor
 # Rust dependencies are managed by Cargo, no manual install needed
@@ -61,6 +63,7 @@ cd receipt_processor
 ### 3. Set Up Environment Variables
 
 #### Frontend:
+
 ```bash
 cd frontend
 cp env.template .env.local
@@ -68,6 +71,7 @@ cp env.template .env.local
 ```
 
 #### Backend:
+
 ```bash
 cd receipt_processor
 # Create .env file if needed
@@ -85,6 +89,7 @@ docker-compose -f docker-compose.local.yml up
 ```
 
 This will:
+
 - Start PostgreSQL and Redis
 - Build and start the backend service
 - Build and start the frontend service
@@ -92,6 +97,7 @@ This will:
 #### Option 2: Run Services Individually
 
 **Backend:**
+
 ```bash
 cd receipt_processor
 
@@ -103,6 +109,7 @@ cargo run
 ```
 
 **Frontend:**
+
 ```bash
 cd frontend
 
@@ -156,10 +163,12 @@ When adding a new service:
 ## CI/CD
 
 Each service has its own GitHub Actions workflow:
+
 - `frontend/.github/workflows/ci.yml` - Frontend CI/CD
 - `receipt_processor/.github/workflows/ci.yml` - Backend CI/CD
 
 Workflows automatically:
+
 - Run tests on pull requests
 - Build Docker images on push
 - Deploy to staging (dev branch)
@@ -170,11 +179,13 @@ Workflows automatically:
 For production, use published Docker images:
 
 1. Copy the example production compose file:
+
    ```bash
    cp docker-compose.prod.yml.example docker-compose.prod.yml
    ```
 
 2. Update image names in `docker-compose.prod.yml`:
+
    ```yaml
    frontend:
      image: ghcr.io/your-org/receipt-processor-frontend:main
@@ -192,6 +203,7 @@ For production, use published Docker images:
 ### Git Commands in Workspace Root
 
 If you accidentally run `git` commands in the workspace root:
+
 - The workspace root should NOT be a git repo
 - Use `git -C frontend <command>` to run git in subdirectories
 - Or `cd` into the specific service directory first
@@ -199,6 +211,7 @@ If you accidentally run `git` commands in the workspace root:
 ### Docker Compose Context Issues
 
 If docker-compose can't find services:
+
 - Ensure you're running from workspace root
 - Check that service directories exist
 - Verify paths in docker-compose files are correct
@@ -206,6 +219,7 @@ If docker-compose can't find services:
 ### Service Communication
 
 Services communicate via:
+
 - **Frontend → Backend**: `NEXT_PUBLIC_API_URL` (default: http://localhost:8000)
 - **Backend → Database**: `DATABASE_URL` (in docker-compose network: `postgres:5432`)
 - **Backend → Redis**: `REDIS_URL` (in docker-compose network: `redis:6379`)
@@ -216,5 +230,4 @@ Services communicate via:
 ✅ **Unified Development**: All services in one workspace for easy development  
 ✅ **Team Flexibility**: Different teams can own different services  
 ✅ **Scalability**: Easy to add new services without affecting existing ones  
-✅ **Local Testing**: Full stack development with docker-compose  
-
+✅ **Local Testing**: Full stack development with docker-compose

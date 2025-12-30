@@ -8,7 +8,7 @@ This guide explains how to split the monorepo into separate git repositories whi
 
 After splitting, you'll have:
 
-- **Separate git repos**: `frontend` and `receipt_processor` (and future services)
+- **Separate git repos**: `frontend` and `backend` (and future services)
 - **Unified workspace**: All services can still be developed together in the same directory structure
 - **Independent CI/CD**: Each service has its own GitHub Actions workflows
 
@@ -21,7 +21,7 @@ acarus/                          # Your workspace directory (NOT a git repo)
 │   ├── src/
 │   ├── package.json
 │   └── ...
-├── receipt_processor/           # Separate git repo for backend
+├── backend/           # Separate git repo for backend
 │   ├── .git/
 │   ├── src/
 │   ├── Cargo.toml
@@ -51,7 +51,7 @@ git push -u origin main
 #### For Backend:
 
 ```bash
-cd receipt_processor
+cd backend
 git init
 git add .
 git commit -m "Initial commit: Receipt processor backend"
@@ -78,7 +78,7 @@ cd /Users/xavierelon/coding/amazon/acarus
 The workflows have been updated for separate repos:
 
 - `frontend/.github/workflows/ci.yml` - Frontend CI/CD
-- `receipt_processor/.github/workflows/ci.yml` - Backend CI/CD
+- `backend/.github/workflows/ci.yml` - Backend CI/CD
 
 Each workflow no longer uses path filters since the repos are separate.
 
@@ -107,7 +107,7 @@ git commit -m "Frontend changes"
 git push
 
 # Work on backend
-cd ../receipt_processor
+cd ../backend
 git status
 git add .
 git commit -m "Backend changes"
@@ -122,7 +122,7 @@ docker-compose up
 
 # Or run individually
 cd frontend && npm run dev
-cd receipt_processor && cargo run
+cd backend && cargo run
 ```
 
 ## CI/CD Changes
