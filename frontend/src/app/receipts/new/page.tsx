@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { MainLayout } from '@/components/layout/main-layout'
 import { PageTransition } from '@/components/animations/page-transition'
 import { FadeIn } from '@/components/animations/fade-in'
-import { Upload, Camera, FileText, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { ValidationResult, ValidationFlag, receiptValidator } from '@/lib/receipt-validator'
+import { Upload, Camera, FileText, AlertCircle, CheckCircle, XCircle, Loader2, Sparkles } from 'lucide-react'
+import { apiClient } from '@/lib/api-client'
+import type { BackendReceipt } from '@/lib/api-client'
 
 export default function NewReceiptPage() {
   const router = useRouter()
@@ -28,15 +29,30 @@ export default function NewReceiptPage() {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
-  const [showValidation, setShowValidation] = useState(false)
+  const [uploadedReceipt, setUploadedReceipt] = useState<BackendReceipt | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  // Add drag and drop state
+  const [isDragging, setIsDragging] = useState(false)
 
   const categories = ['Food & Dining', 'Transportation', 'Shopping', 'Entertainment', 'Healthcare', 'Utilities', 'Travel', 'Other']
 
   const handleFileSelect = (file: File) => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file')
+      return
+    }
+
+    // Validate file size (e.g., max 10MB)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      alert('File size must be less than 10MB')
+      return
+    }
+
     setSelectedFile(file)
-    setValidationResult(null)
-    setShowValidation(false)
+    setUploadedReceipt(null)
+    setError(null)
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +69,36 @@ export default function NewReceiptPage() {
     }
   }
 
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      handleFileSelect(file)
+    }
+  }
+
   const validateReceipt = async () => {
     if (!selectedFile) {
       alert('Please select a receipt image first')
@@ -60,80 +106,41 @@ export default function NewReceiptPage() {
     }
 
     setIsUploading(true)
-    setShowValidation(true)
+    setError(null)
+    setUploadedReceipt(null)
 
     try {
-      // Prepare receipt data
-      const receiptData = {
-        merchant: formData.merchant,
-        amount: parseFloat(formData.amount) || 0,
-        date: new Date(formData.date),
-        category: formData.category,
-        description: formData.description,
-        image: selectedFile
-      }
+      // Upload to backend - this will call OCR and create receipt
+      const receipt = await apiClient.uploadReceiptImage(selectedFile)
 
-      // Call validator directly (client-side validation)
-      const result = await receiptValidator.validateReceipt(receiptData)
-      setValidationResult(result)
-    } catch (error) {
-      console.error('Validation error:', error)
-      setValidationResult({
-        isValid: false,
-        confidence: 0,
-        riskScore: 1.0,
-        flags: [
-          {
-            type: 'ERROR',
-            code: 'VALIDATION_ERROR',
-            message: error instanceof Error ? error.message : 'Failed to validate receipt',
-            severity: 'high'
-          }
-        ],
-        recommendations: ['Please try again']
+      // Set the uploaded receipt with OCR data
+      setUploadedReceipt(receipt)
+
+      // Auto-fill form with OCR-extracted data
+      setFormData({
+        merchant: receipt.vendor_name || '',
+        amount: receipt.total_amount.toString() || '',
+        date: receipt.purchase_date ? new Date(receipt.purchase_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        category: formData.category, // Keep user's category choice
+        description: formData.description // Keep user's description
       })
+    } catch (error) {
+      console.error('Upload error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to upload and process receipt')
     } finally {
       setIsUploading(false)
     }
   }
 
   const handleSubmit = async () => {
-    if (!validationResult?.isValid) {
-      alert('Please validate the receipt first and resolve any issues')
+    if (!uploadedReceipt) {
+      alert('Please upload and process the receipt first')
       return
     }
 
-    // Here you would typically save the receipt to your database
-    console.log('Saving receipt:', { ...formData, file: selectedFile })
-
-    // For now, just redirect to receipts page
+    // Receipt is already saved in the database from the upload
+    // Just redirect to receipts page
     router.push('/receipts')
-  }
-
-  const getFlagIcon = (flag: ValidationFlag) => {
-    switch (flag.type) {
-      case 'ERROR':
-        return <XCircle className="h-4 w-4 text-red-500" />
-      case 'WARNING':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />
-      case 'INFO':
-        return <CheckCircle className="h-4 w-4 text-blue-500" />
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />
-    }
-  }
-
-  const getFlagColor = (flag: ValidationFlag) => {
-    switch (flag.severity) {
-      case 'high':
-        return 'bg-red-100 text-red-800 border-red-200'
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'low':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
   }
 
   return (
@@ -166,9 +173,20 @@ export default function NewReceiptPage() {
                 <CardContent className="space-y-4">
                   {!selectedFile ? (
                     <div className="space-y-4">
-                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                        <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">Drag and drop your receipt here, or click to browse</p>
+                      {/* Drag and Drop Zone */}
+                      <div
+                        onDragEnter={handleDragEnter}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={`
+                          border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
+                          ${isDragging ? 'border-primary bg-primary/5 scale-105' : 'border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/5'}
+                        `}
+                        onClick={() => fileInputRef.current?.click()}>
+                        <FileText className={`mx-auto h-12 w-12 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <p className="mt-2 text-sm font-medium">{isDragging ? 'Drop your receipt here' : 'Drag and drop your receipt here, or click to browse'}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Supports: JPG, PNG, GIF (Max 10MB)</p>
                       </div>
 
                       <div className="flex gap-2">
@@ -196,8 +214,8 @@ export default function NewReceiptPage() {
                         variant="outline"
                         onClick={() => {
                           setSelectedFile(null)
-                          setValidationResult(null)
-                          setShowValidation(false)
+                          setUploadedReceipt(null)
+                          setError(null)
                         }}>
                         Remove File
                       </Button>
@@ -215,7 +233,7 @@ export default function NewReceiptPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Receipt Details</CardTitle>
-                  <CardDescription>Enter the receipt information</CardDescription>
+                  <CardDescription>Review and edit the extracted information</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -253,83 +271,82 @@ export default function NewReceiptPage() {
             </FadeIn>
           </div>
 
-          {/* Validation Section */}
-          {showValidation && (
+          {/* OCR Results Section */}
+          {uploadedReceipt && (
             <FadeIn delay={0.3}>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    {isUploading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : validationResult?.isValid ? <CheckCircle className="mr-2 h-5 w-5 text-green-500" /> : <XCircle className="mr-2 h-5 w-5 text-red-500" />}
-                    Receipt Validation
+                    <Sparkles className="mr-2 h-5 w-5 text-primary" />
+                    OCR Extraction Results
                   </CardTitle>
-                  <CardDescription>{isUploading ? 'Validating receipt...' : validationResult?.isValid ? 'Receipt validation passed' : 'Receipt validation failed'}</CardDescription>
+                  <CardDescription>Data extracted from your receipt</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isUploading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-muted-foreground">Processing receipt...</span>
-                    </div>
-                  ) : validationResult ? (
-                    <div className="space-y-4">
-                      {/* Validation Summary */}
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold">{Math.round(validationResult.confidence * 100)}%</div>
-                          <p className="text-sm text-muted-foreground">Confidence</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold">{Math.round(validationResult.riskScore * 100)}%</div>
-                          <p className="text-sm text-muted-foreground">Risk Score</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold">{validationResult.flags.length}</div>
-                          <p className="text-sm text-muted-foreground">Issues</p>
-                        </div>
+                  <div className="space-y-4">
+                    {/* Receipt Summary */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{uploadedReceipt.vendor_name}</div>
+                        <p className="text-sm text-muted-foreground">Vendor</p>
                       </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">
+                          {uploadedReceipt.currency} {uploadedReceipt.total_amount.toFixed(2)}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Total Amount</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{new Date(uploadedReceipt.purchase_date).toLocaleDateString()}</div>
+                        <p className="text-sm text-muted-foreground">Purchase Date</p>
+                      </div>
+                    </div>
 
-                      {/* Validation Flags */}
-                      {validationResult.flags.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Validation Results:</h4>
-                          {validationResult.flags.map((flag, index) => (
-                            <div key={index} className={`flex items-center space-x-2 p-3 rounded-lg border ${getFlagColor(flag)}`}>
-                              {getFlagIcon(flag)}
+                    {/* Items List */}
+                    {uploadedReceipt.items && uploadedReceipt.items.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Items:</h4>
+                        <div className="space-y-1">
+                          {uploadedReceipt.items.map((item, index) => (
+                            <div key={item.id || index} className="flex items-center justify-between p-2 rounded border">
                               <div className="flex-1">
-                                <p className="text-sm font-medium">{flag.message}</p>
-                                <p className="text-xs opacity-75">Code: {flag.code}</p>
+                                <p className="text-sm font-medium">{item.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.quantity} × {item.unit_price.toFixed(2)} = {item.total_price.toFixed(2)}
+                                </p>
                               </div>
-                              <Badge variant="outline" className="text-xs">
-                                {flag.severity}
-                              </Badge>
                             </div>
                           ))}
                         </div>
-                      )}
-
-                      {/* Recommendations */}
-                      {validationResult.recommendations.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Recommendations:</h4>
-                          <ul className="space-y-1">
-                            {validationResult.recommendations.map((rec, index) => (
-                              <li key={index} className="text-sm text-muted-foreground">
-                                • {rec}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 pt-4">
-                        <Button onClick={validateReceipt} variant="outline" disabled={isUploading}>
-                          Re-validate
-                        </Button>
-                        {validationResult.isValid && <Button onClick={handleSubmit}>Save Receipt</Button>}
                       </div>
+                    )}
+
+                    {/* Success Message */}
+                    <div className="flex items-center space-x-2 p-3 rounded-lg bg-green-50 border border-green-200">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <p className="text-sm text-green-800">Receipt successfully processed and saved!</p>
                     </div>
-                  ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+            </FadeIn>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <FadeIn delay={0.3}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-red-500">
+                    <XCircle className="mr-2 h-5 w-5" />
+                    Error
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <p className="text-sm text-red-800">{error}</p>
+                  </div>
                 </CardContent>
               </Card>
             </FadeIn>
@@ -345,12 +362,16 @@ export default function NewReceiptPage() {
                 {isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Validating...
+                    Processing...
                   </>
                 ) : (
-                  'Validate Receipt'
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Process with OCR
+                  </>
                 )}
               </Button>
+              {uploadedReceipt && <Button onClick={handleSubmit}>View Receipt</Button>}
             </div>
           </FadeIn>
         </div>

@@ -48,17 +48,33 @@ local_resource(
     labels=['redis']
 )
 
+# OCR Service (Python FastAPI)
+local_resource(
+    'ocr',
+    serve_cmd='cd ocr && ./venv/bin/python main.py',
+    deps=['ocr/main.py', 'ocr/models.py', 'ocr/ocr_processor.py', 'ocr/requirements.txt'],
+    env={
+        'PYTHONUNBUFFERED': '1'
+    },
+    readiness_probe=probe(
+        period_secs=3,
+        http_get=http_get_action(port=8081, path='/health')
+    ),
+    labels=['ocr']
+)
+
 # Build and run the Rust backend application
 local_resource(
     'backend',
-    serve_cmd='cd backend && PORT=8000 cargo run',
+    serve_cmd='cd backend && PORT=8000 OCR_SERVICE_URL=http://localhost:8081 DATABASE_URL=postgres://user:password@localhost:5439/receipt_db REDIS_URL=redis://:redis123@localhost:6379 cargo run',
     deps=['backend/src', 'backend/Cargo.toml', 'backend/Cargo.lock'],
     env={
         'DATABASE_URL': 'postgres://user:password@localhost:5439/receipt_db',
         'REDIS_URL': 'redis://:redis123@localhost:6379',
-        'PORT': '8000'
+        'PORT': '8000',
+        'OCR_SERVICE_URL': 'http://localhost:8081'
     },
-    resource_deps=['postgres', 'redis', 'migrations'],
+    resource_deps=['postgres', 'redis', 'migrations', 'ocr'],
     readiness_probe=probe(
         period_secs=2,
         http_get=http_get_action(port=8000, path='/health')
@@ -67,13 +83,19 @@ local_resource(
 )
 
 # Run migrations automatically with proper waiting and verification
+# Using docker exec to run psql inside the postgres container
 local_resource(
     'migrations',
-    cmd='sleep 5 && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f backend/migrations/001_create_receipts_table.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f backend/migrations/002_add_users_and_auth.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f backend/migrations/003_seed_test_data.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f backend/migrations/004_add_receipts_to_15_per_user.sql && PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -f backend/migrations/005_add_phone_number_to_users.sql',
+    cmd='sleep 5 && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/001_create_receipts_table.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/002_add_users_and_auth.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/003_seed_test_data.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/004_add_receipts_to_15_per_user.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < backend/migrations/005_add_phone_number_to_users.sql',
     resource_deps=['postgres'],
     readiness_probe=probe(
         period_secs=5,
-        exec=exec_action(['sh', '-c', 'PGPASSWORD=password psql -h localhost -p 5439 -U user -d receipt_db -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = \'public\' AND table_name IN (\'receipts\', \'receipt_items\', \'users\', \'api_keys\', \'sessions\')" | grep -q "5" 2>/dev/null'])
+        exec=exec_action(['sh', '-c', 'docker exec receipt-postgres psql -U user -d receipt_db -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = \'public\' AND table_name IN (\'receipts\', \'receipt_items\', \'users\', \'api_keys\', \'sessions\')" | grep -q "5" 2>/dev/null'])
     ),
     labels=['database']
 )
