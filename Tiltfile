@@ -118,8 +118,8 @@ local_resource(
     },
     resource_deps=['backend'],
     readiness_probe=probe(
-        period_secs=3,
-        http_get=http_get_action(port=3000, path='/')
+        period_secs=30,
+        http_get=http_get_action(port=3000, path='/api/health')
     ),
     labels=['frontend']
 )
@@ -130,13 +130,14 @@ local_resource(
     serve_cmd='cd ../gopher-pos && ' +
               'mkdir -p logs && ' +
               'PORT=1019 REDIS_URL=redis://:redis123@localhost:6379 BACKEND_URL=http://localhost:8000 ' +
+            'STRIPE_PUBLISHABLE_KEY=pk_test_51MHeHKJrkE18sY2VnOE9RJ7HdUTnCvrlzftwvrdFllNoaoI09umomUyz8wjKgHC2y7cDyt9izeL89OlaQWMctvK400qk5aMEg8 ' +
               'go run ./cmd/pos-terminal > logs/pos-terminal.log 2>&1',
     deps=['../gopher-pos/cmd', '../gopher-pos/internal', '../gopher-pos/pkg', '../gopher-pos/go.mod', '../gopher-pos/go.sum'],
     env={
         'PORT': '1019',
         'REDIS_URL': 'redis://:redis123@localhost:6379',
         'BACKEND_URL': 'http://localhost:8000',
-        'STRIPE_PUBLISHABLE_KEY': 'pk_test_51MHeHKJrkE18sY2VuaebQHXeGq40ilkf6BIXhXyVnPoufvuwLYUQnlBNLkkX05iFuU3cRT7W8NZHvP2tFaMBHCU2001EJNE4BV'
+        'STRIPE_PUBLISHABLE_KEY': 'pk_test_51MHeHKJrkE18sY2VnOE9RJ7HdUTnCvrlzftwvrdFllNoaoI09umomUyz8wjKgHC2y7cDyt9izeL89OlaQWMctvK400qk5aMEg8'
     },
     resource_deps=['redis', 'backend'],
     readiness_probe=probe(
