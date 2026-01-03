@@ -124,13 +124,14 @@ local_resource(
 # POS Terminal Service (Go)
 local_resource(
     'pos-terminal',
-    serve_cmd='cd ../gopher-pos && PORT=1019 REDIS_URL=redis://:redis123@localhost:6379 go run ./cmd/pos-terminal',
+    serve_cmd='cd ../gopher-pos && PORT=1019 REDIS_URL=redis://:redis123@localhost:6379 BACKEND_URL=http://localhost:8000 go run ./cmd/pos-terminal',
     deps=['../gopher-pos/cmd', '../gopher-pos/internal', '../gopher-pos/pkg', '../gopher-pos/go.mod', '../gopher-pos/go.sum'],
     env={
         'PORT': '1019',
-        'REDIS_URL': 'redis://:redis123@localhost:6379'
+        'REDIS_URL': 'redis://:redis123@localhost:6379',
+        'BACKEND_URL': 'http://localhost:8000'
     },
-    resource_deps=['redis'],
+    resource_deps=['redis', 'backend'],
     readiness_probe=probe(
         period_secs=2,
         http_get=http_get_action(port=1019, path='/health')
@@ -140,6 +141,7 @@ local_resource(
 
 # Ngrok tunnel for POS Terminal
 # Requires ngrok installed locally.
+# Find your ngrok URL at: http://localhost:4040 (ngrok web interface)
 local_resource(
     'ngrok-pos',
     serve_cmd='ngrok http 1019 --log=stdout',
