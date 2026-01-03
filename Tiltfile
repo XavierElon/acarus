@@ -112,7 +112,9 @@ local_resource(
     serve_cmd='cd ../acarus-frontend && bun run dev',
     deps=['../acarus-frontend/src', '../acarus-frontend/package.json', '../acarus-frontend/bun.lockb'],
     env={
-        'NEXT_PUBLIC_API_URL': 'http://localhost:8000'
+        'NEXT_PUBLIC_API_URL': 'http://localhost:8000',
+        'NEXTAUTH_URL': 'http://localhost:3000',
+        'NEXTAUTH_SECRET': '8OLuwkVizRF6DAcmf1M7z6bGd04VuHJ5PJWhYCabnVg='
     },
     resource_deps=['backend'],
     readiness_probe=probe(
