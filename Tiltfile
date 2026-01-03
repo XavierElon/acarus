@@ -139,12 +139,12 @@ local_resource(
     labels=['pos']
 )
 
-# Ngrok tunnel for POS Terminal
-# Requires ngrok installed locally.
-# Find your ngrok URL at: http://localhost:4040 (ngrok web interface)
+# Cloudflare Tunnel for POS Terminal
+# Requires cloudflared installed locally: brew install cloudflared (macOS) or download from https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+# The tunnel URL will be displayed in the logs (format: https://xxxxx.trycloudflare.com)
 local_resource(
-    'ngrok-pos',
-    serve_cmd='ngrok http 1019 --log=stdout',
+    'cloudflare-pos',
+    serve_cmd='PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" /opt/homebrew/bin/cloudflared tunnel --url http://localhost:1019',
     resource_deps=['pos-terminal'],
-    labels=['ngrok', 'pos']
+    labels=['cloudflare', 'pos']
 )
