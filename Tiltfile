@@ -96,7 +96,8 @@ local_resource(
         'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/003_seed_test_data.sql && ' +
         'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/004_add_receipts_to_15_per_user.sql && ' +
         'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/005_add_phone_number_to_users.sql && ' +
-        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/006_add_phone_number_to_receipts.sql',
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/006_add_phone_number_to_receipts.sql && ' +
+        'docker exec -i receipt-postgres psql -U user -d receipt_db < ../acarus-backend/migrations/007_add_payment_methods.sql',
     resource_deps=['postgres'],
     readiness_probe=probe(
         period_secs=5,
@@ -132,7 +133,8 @@ local_resource(
     env={
         'PORT': '1019',
         'REDIS_URL': 'redis://:redis123@localhost:6379',
-        'BACKEND_URL': 'http://localhost:8000'
+        'BACKEND_URL': 'http://localhost:8000',
+        'STRIPE_PUBLISHABLE_KEY': 'pk_test_51MHeHKJrkE18sY2VuaebQHXeGq40ilkf6BIXhXyVnPoufvuwLYUQnlBNLkkX05iFuU3cRT7W8NZHvP2tFaMBHCU2001EJNE4BV'
     },
     resource_deps=['redis', 'backend'],
     readiness_probe=probe(
