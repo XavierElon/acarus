@@ -140,11 +140,15 @@ local_resource(
 )
 
 # Cloudflare Tunnel for POS Terminal
-# Requires cloudflared installed locally: brew install cloudflared (macOS) or download from https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
-# The tunnel URL will be displayed in the logs (format: https://xxxxx.trycloudflare.com)
+# Requires cloudflared installed locally and a named tunnel created:
+#   cloudflared tunnel login
+#   cloudflared tunnel create acarus-pos
+#   cloudflared tunnel route dns acarus-pos pos.acarus.io
+# Config file: ~/.cloudflared/config.yml
+# The tunnel URL will be your configured domain (e.g., pos.yourdomain.com)
 local_resource(
     'cloudflare-pos',
-    serve_cmd='PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" /opt/homebrew/bin/cloudflared tunnel --url http://localhost:1019',
+    serve_cmd='PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" /opt/homebrew/bin/cloudflared tunnel run acarus-pos',
     resource_deps=['pos-terminal'],
     labels=['cloudflare', 'pos']
 )
