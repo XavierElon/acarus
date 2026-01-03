@@ -121,10 +121,13 @@ local_resource(
     labels=['frontend']
 )
 
-# POS Terminal Service (Go)
+# POS Terminal Service (Go) - Updated to write logs to file
 local_resource(
     'pos-terminal',
-    serve_cmd='cd ../gopher-pos && PORT=1019 REDIS_URL=redis://:redis123@localhost:6379 BACKEND_URL=http://localhost:8000 go run ./cmd/pos-terminal',
+    serve_cmd='cd ../gopher-pos && ' +
+              'mkdir -p logs && ' +
+              'PORT=1019 REDIS_URL=redis://:redis123@localhost:6379 BACKEND_URL=http://localhost:8000 ' +
+              'go run ./cmd/pos-terminal > logs/pos-terminal.log 2>&1',
     deps=['../gopher-pos/cmd', '../gopher-pos/internal', '../gopher-pos/pkg', '../gopher-pos/go.mod', '../gopher-pos/go.sum'],
     env={
         'PORT': '1019',
@@ -140,15 +143,61 @@ local_resource(
 )
 
 # Cloudflare Tunnel for POS Terminal
-# Requires cloudflared installed locally and a named tunnel created:
-#   cloudflared tunnel login
-#   cloudflared tunnel create acarus-pos
-#   cloudflared tunnel route dns acarus-pos pos.acarus.io
-# Config file: ~/.cloudflared/config.yml
-# The tunnel URL will be your configured domain (e.g., pos.yourdomain.com)
+# Requires cloudflared installed locally: brew install cloudflared (macOS) or download from https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+# The tunnel URL will be displayed in the logs (format: https://xxxxx.trycloudflare.com)
 local_resource(
     'cloudflare-pos',
-    serve_cmd='PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" /opt/homebrew/bin/cloudflared tunnel run acarus-pos',
+    serve_cmd='PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" /opt/homebrew/bin/cloudflared tunnel --url http://localhost:1019',
     resource_deps=['pos-terminal'],
     labels=['cloudflare', 'pos']
+)
+
+# Clean up existing Loki/Promtail/Grafana containers
+local_resource(
+    'logging-cleanup',
+    cmd='docker rm -f loki promtail grafana 2>/dev/null || true',
+    auto_init=True,
+    labels=['logging']
+)
+
+# Loki - Log aggregation system
+local_resource(
+    'loki',
+    serve_cmd='docker run --rm --name loki -p 3100:3100 ' +
+              '-v $(pwd)/loki-config.yml:/etc/loki/local-config.yaml ' +
+              'grafana/loki:latest -config.file=/etc/loki/local-config.yaml',
+    resource_deps=['logging-cleanup'],
+    readiness_probe=probe(
+        period_secs=3,
+        http_get=http_get_action(port=3100, path='/ready')
+    ),
+    labels=['logging', 'monitoring']
+)
+
+# Promtail - Log shipper (reads logs and sends to Loki)
+local_resource(
+    'promtail',
+    serve_cmd='docker run --rm --name promtail --link loki:loki -p 9080:9080 ' +
+              '-v $(pwd)/promtail-config.yml:/etc/promtail/config.yml ' +
+              '-v $(pwd)/../gopher-pos/logs:/var/log:ro ' +
+              'grafana/promtail:latest -config.file=/etc/promtail/config.yml',
+    resource_deps=['loki', 'logging-cleanup'],
+    labels=['logging']
+)
+
+# Grafana - Visualization and dashboards
+local_resource(
+    'grafana',
+    serve_cmd='docker run --rm --name grafana -p 3001:3000 ' +
+              '--add-host=host.docker.internal:host-gateway ' +
+              '-e GF_AUTH_ANONYMOUS_ENABLED=true ' +
+              '-e GF_AUTH_ANONYMOUS_ORG_ROLE=Admin ' +
+              '-e GF_SERVER_ROOT_URL=http://localhost:3001 ' +
+              'grafana/grafana:latest',
+    resource_deps=['loki'],
+    readiness_probe=probe(
+        period_secs=3,
+        http_get=http_get_action(port=3001, path='/api/health')
+    ),
+    labels=['logging', 'monitoring', 'dashboard']
 )
