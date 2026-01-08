@@ -95,11 +95,18 @@ main() {
             echo -e "${GREEN}  ✓ Already on ${base_branch}${NC}"
             echo -e "${BLUE}  📥 Pulling latest changes...${NC}"
             
-            if git pull origin "$base_branch" 2>/dev/null; then
+            # Set upstream if not set
+            git branch --set-upstream-to=origin/"$base_branch" "$base_branch" 2>/dev/null
+            
+            pull_output=$(git pull 2>&1)
+            pull_exit_code=$?
+            
+            if [ $pull_exit_code -eq 0 ]; then
                 echo -e "${GREEN}  ✓ Pulled latest changes${NC}"
                 ((already_on_master_count++))
             else
                 echo -e "${RED}  ❌ Failed to pull latest changes${NC}"
+                echo -e "${RED}  Error: $pull_output${NC}"
                 ((error_count++))
             fi
             echo ""
@@ -142,13 +149,23 @@ main() {
             fi
         fi
         
-        # Pull latest changes
+        # Pull latest changes (use git pull without args since upstream is set, or specify remote/branch)
         echo -e "${BLUE}  📥 Pulling latest changes...${NC}"
-        if git pull origin "$base_branch" 2>/dev/null; then
-            echo -e "${GREEN}  ✓ Pulled latest changes${NC}"
+        pull_output=$(git pull 2>&1)
+        pull_exit_code=$?
+        
+        if [ $pull_exit_code -eq 0 ]; then
+            # Check if there were actual updates or if already up to date
+            if echo "$pull_output" | grep -q "Already up to date\|Fast-forward\|Updating"; then
+                echo -e "${GREEN}  ✓ Pulled latest changes${NC}"
+            else
+                # Still succeeded, just show the output
+                echo -e "${GREEN}  ✓ Pulled latest changes${NC}"
+            fi
             ((switched_count++))
         else
             echo -e "${RED}  ❌ Failed to pull latest changes${NC}"
+            echo -e "${RED}  Error: $pull_output${NC}"
             ((error_count++))
         fi
         
